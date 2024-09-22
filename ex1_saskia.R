@@ -22,8 +22,12 @@ linguistic_sf_2056 <- st_transform(linguistic_sf, 2056)
 linguistic_sf_4326 <- st_transform(linguistic_sf, 4326)
 
 # plot graduaded symbols
-leaflet(linguistic_sf_4326) +
-  addMarkers() 
+ggplot(linguistic_sf_2056) + 
+  geom_sf(aes(color = perc_schmilzt_s_Iis))
 
-ggplot() + 
-  geom_sf(data = linguistic_sf_2056)
+# plot dominant variant
+ggplot(linguistic_sf_2056) + 
+  geom_sf(color = linguistic_sf_2056$dominant) +
+  theme(legend.position = "bottom")
+
+# compute nearest neighbour index
