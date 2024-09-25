@@ -1,0 +1,116 @@
+---
+title: "Ex2_Sarah"
+author: "Sarah Wirth"
+date: "25.09.2024"
+format: 
+  html:
+    fig_caption: true
+    fig-align: center
+    highlight: tango
+    number-sections: false
+    theme: flatly
+    toc: true
+    toc_depth: 2
+    toc_float: true
+
+execute:                     
+  echo: true
+  warning: false
+  message: false
+---
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+```
+
+# Assignment
+
+* **Task 0:** Create a new R Project and new R Script using a clean template and initialization of the environment. We recommend you use RMarkdown with HTML as target output.
+
+* **Task 1:** Download and import the road accident data from Open Data Zurich (ODZ) using an appropriate file format. If needed, transform to the Swiss projected CH1903+/LV95 coordinate system (EPSG = 2056).
+```{r, echo = FALSE, message = FALSE}
+
+
+accidents <- sf::st_read("Session_2/roadtrafficaccidentlocations.gpkg")
+
+
+boundary <-sf::st_read("Session_2/Zurich_city_boundary_2024.gpkg")
+
+districts <-sf::st_read("Session_2/Zurich_city_districts_2024.gpkg")
+
+```
+
+* **Task 2:** Report the following numbers in table(s):
+  a. Number of accidents by accident severity category
+  b. Number of accidents by accident type
+  c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)? no
+  
+  
+```{r}
+numsev<-accidents |> 
+  count(AccidentSeverityCategory_en)
+
+numtype <- accidents |> 
+  count(AccidentType_en)
+
+numped <- accidents |> 
+  count(AccidentInvolvingPedestrian)
+
+numbi <- accidents |> 
+  count(AccidentInvolvingBicycle)
+
+nummot <- accidents |> 
+  count(AccidentInvolvingMotorcycle)
+
+numpedbimot <- accidents |> 
+  group_by(AccidentInvolvingBicycle, AccidentInvolvingMotorcycle, AccidentInvolvingPedestrian) |> 
+  summarise(n=n())
+
+```
+
+
+
+* **Task 3:** Generate a plot showing the temporal evolution of the number of accidents from 2011 to 2023. Label each year with the corresponding number of accidents. Choose a plot type that is suitable for this type of temporal data. Bonus: Show also the data for the bicycle accidents (cf. Task 4) in the same plot.
+```{r}
+numyearbi <- accidents |> group_by(AccidentYear, AccidentInvolvingBicycle) |> 
+  summarise(n=n())
+
+numyear <- numyearbi |> group_by(AccidentYear)  |> 
+  summarise(n=n())
+  
+ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle)) +
+  geom_bar(position="stack", stat="identity")+
+  xlab("Year")+
+  ylab("")+
+  guides(fill=guide_legend(title="Bicycle"))
+
+```
+
+* **Task 4:** Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
+```{r}
+onlybikes <-accidents |>  
+  filter(AccidentInvolvingBicycle== "true")#7425 obs
+
+cols<- c("Accident with fatalities" ="red", "Accident with light injuries"="yellow","Accident with property damage"= "blue", "Accident with severe injuries"="orange")
+
+
+ggplot()+
+  geom_sf(data=boundary, aes(color="white"))+
+  geom_sf(data=onlybikes, aes(color=factor(AccidentSeverityCategory_en)))+
+  scale_colour_manual(values = cols)+
+  theme(legend.position="none")
+
+```
+
+* **Task 5:** Imagine you are given the task of detecting spatial clusters of elevated bicycle accident occurrence (without considering their severity). How would you characterize such "bicycle accident clusters"? Try to define properties that can be used to describe and identify such clusters, and that can be used to choose and parameterize a clustering method suitable for the task. Try to use natural, but precise and concise language in your answer.
+```{r}
+
+```
+
+* **Task 6:** From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
+```{r}
+
+```
+
+* **Task 7**: Discuss your results, including also limitations or problems, and possible other methods that you could have used.
