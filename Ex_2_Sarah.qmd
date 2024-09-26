@@ -47,7 +47,7 @@ districts <-sf::st_read("Session_2/Zurich_city_districts_2024.gpkg")
   c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)? no
   
   
-```{r}
+```{r, echo = FALSE, message = FALSE}
 numsev<-accidents |> 
   count(AccidentSeverityCategory_en)
 
@@ -72,7 +72,7 @@ numpedbimot <- accidents |>
 
 
 * **Task 3:** Generate a plot showing the temporal evolution of the number of accidents from 2011 to 2023. Label each year with the corresponding number of accidents. Choose a plot type that is suitable for this type of temporal data. Bonus: Show also the data for the bicycle accidents (cf. Task 4) in the same plot.
-```{r}
+```{r, echo = FALSE, message = FALSE}
 numyearbi <- accidents |> group_by(AccidentYear, AccidentInvolvingBicycle) |> 
   summarise(n=n())
 
@@ -88,7 +88,7 @@ ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle)) +
 ```
 
 * **Task 4:** Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
-```{r}
+```{r, echo = FALSE, message = FALSE}
 onlybikes <-accidents |>  
   filter(AccidentInvolvingBicycle== "true")#7425 obs
 
@@ -104,13 +104,81 @@ ggplot()+
 ```
 
 * **Task 5:** Imagine you are given the task of detecting spatial clusters of elevated bicycle accident occurrence (without considering their severity). How would you characterize such "bicycle accident clusters"? Try to define properties that can be used to describe and identify such clusters, and that can be used to choose and parameterize a clustering method suitable for the task. Try to use natural, but precise and concise language in your answer.
-```{r}
 
-```
+
+How: use optics as dbscan is insufficient for rural data
+Properties: the accidents occur along road networks and are tied to different hours of day, different visibility, different traffic (also dependent on time). Possible clusters have varying densities and do rarely occur within forests (there probably is a reporting- bias)
+
+
 
 * **Task 6:** From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
-```{r}
+```{r, echo = FALSE, message = FALSE}
+onlybikes18 <- sf::st_coordinates(onlybikes |> 
+  filter (AccidentYear ==2018))
+
+onlybikes19 <-  sf::st_coordinates(onlybikes |> 
+  filter (AccidentYear ==2019))
+
+onlybikes20 <- sf::st_coordinates( onlybikes |> 
+  filter (AccidentYear ==2020))
+
+onlybikes21 <- sf::st_coordinates(onlybikes |> 
+  filter (AccidentYear ==2021))
+
+
+library("cluster")
+library("dbscan")
+library("fpc")
+library("seriation")
+library("mlbench")
+library("spatgraphs")
+
+dbscan::kNNdistplot(onlybikes18, k = 3)
+graphics::abline(h = 500, col = "red")
+
+dbscan::kNNdistplot(onlybikes19, k = 3)
+graphics::abline(h = 500, col = "red")
+
+dbscan::kNNdistplot(onlybikes20, k = 3)
+graphics::abline(h = 500, col = "red")
+
+dbscan::kNNdistplot(onlybikes21, k = 3)
+graphics::abline(h = 500, col = "red")
+
+#500 seems to be ok overall
+
+
+db18 <- dbscan::dbscan(onlybikes18, eps = 500, minPts = 3)
+db18
+
+db19 <- dbscan::dbscan(onlybikes19, eps = 500, minPts = 3)
+db19
+
+db20 <- dbscan::dbscan(onlybikes20, eps = 500, minPts = 3)
+db20
+
+db21 <- dbscan::dbscan(onlybikes21, eps = 500, minPts = 3)
+db21
 
 ```
 
+```{r, echo = FALSE, message = FALSE}
+plot(onlybikes18, pch = 19, cex = 0.5, col = db18$cluster + 1, asp = 1)
+title(main="2018")
+
+plot(onlybikes19, pch = 19, cex = 0.5, col = db19$cluster + 1, asp = 1)
+title(main="2019")
+
+plot(onlybikes20, pch = 19, cex = 0.5, col = db20$cluster + 1, asp = 1)
+title(main="2020")
+
+plot(onlybikes21, pch = 19, cex = 0.5, col = db21$cluster + 1, asp = 1)
+title(main="2021")
+
+```
+
+
 * **Task 7**: Discuss your results, including also limitations or problems, and possible other methods that you could have used.
+
+
+Overall its difficult to separate it. But the threshold of 500m seems appropriate. In all cases the exterior districts are separated from the central area through different forest- areas and other rural zones. If I would like to look closer at the differences in the city center i would need a lower threshold or networt data.
