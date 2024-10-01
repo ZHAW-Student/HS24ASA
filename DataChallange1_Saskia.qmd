@@ -19,7 +19,7 @@ execute:                      # Set global options for execution of code blocks
   message: false
 ---
 
-```{r load data}
+```{r, message=FALSE}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
@@ -31,7 +31,7 @@ library(fpc)
 
 * **Task 1:** Download and import the road accident data from Open Data Zurich (ODZ) using an appropriate file format. If needed, transform to the Swiss projected CH1903+/LV95 coordinate system (EPSG = 2056).
 
-```{r}
+```{r, message=FALSE}
 accidents <- st_read("Session2/roadtrafficaccidentlocations.gpkg")
 boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
 districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
@@ -76,7 +76,7 @@ accidents |>
 
 ```{r}
 ggplot(data = accidents, aes(x = AccidentYear)) + 
-  geom_bar() +
+  geom_bar(fill = "lightblue") +
   geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
   ylab("Number of accidents") +
   xlab("Year") +
@@ -87,7 +87,7 @@ bike_accidents <- accidents |>
   filter(AccidentInvolvingBicycle == "true")
 
 ggplot(data = bike_accidents, aes(x = AccidentYear)) + 
-  geom_bar() +
+  geom_bar(fill = "pink") +
   geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
   ylab("Number of accidents") +
   xlab("Year") +
@@ -99,7 +99,15 @@ ggplot(data = bike_accidents, aes(x = AccidentYear)) +
 ```{r}
 ggplot() +
   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
-  geom_sf(data = districts, color = "blue", fill = NA)
+  geom_sf(data = districts, color = "black", fill = NA) +
+  theme(legend.position = "bottom") +
+  scale_color_manual(values = c("red",  "yellow","orange", "blue"),
+                               name = "Accident Severity",
+                               breaks = c("as1", "as2", "as3", "as4"),
+                               labels = c("fatalities", 
+                                          "light injuries", 
+                                          "severe injuries",
+                                          "property damage"))
 
 ```
 
