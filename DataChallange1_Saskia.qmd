@@ -1,0 +1,160 @@
+---
+title: "Data Challange 1"
+author: "Saskia Gianola"
+date: "October 2024"
+format: 
+  html:
+    embed-resources: true
+    fig_caption: true
+    fig-align: center
+    highlight: tango
+    number-sections: false
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: true
+execute:                      # Set global options for execution of code blocks
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r load data}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(sf)
+library(cluster)
+library(dbscan)
+library(fpc)
+```
+
+* **Task 1:** Download and import the road accident data from Open Data Zurich (ODZ) using an appropriate file format. If needed, transform to the Swiss projected CH1903+/LV95 coordinate system (EPSG = 2056).
+
+```{r}
+accidents <- st_read("Session2/roadtrafficaccidentlocations.gpkg")
+boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
+districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
+```
+
+* **Task 2:** Report the following numbers in table(s):
+  a. Number of accidents by accident severity category
+  b. Number of accidents by accident type
+  c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)?
+  
+```{r}
+accidents |> 
+  count(AccidentSeverityCategory)
+
+accidents |> 
+  count(AccidentType)
+
+accidents |> 
+  count(AccidentInvolvingPedestrian)
+
+accidents |> 
+  count(AccidentInvolvingBicycle)
+
+accidents |> 
+  count(AccidentInvolvingMotorcycle)
+
+accidents |> 
+  count(AccidentInvolvingPedestrian, AccidentInvolvingMotorcycle)
+
+accidents |> 
+  count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle)
+
+accidents |> 
+  count(AccidentInvolvingMotorcycle, AccidentInvolvingBicycle)
+
+accidents |> 
+  count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle, AccidentInvolvingMotorcycle)
+  
+```
+  
+* **Task 3:** Generate a plot showing the temporal evolution of the number of accidents from 2011 to 2023. Label each year with the corresponding number of accidents. Choose a plot type that is suitable for this type of temporal data. Bonus: Show also the data for the bicycle accidents (cf. Task 4) in the same plot.
+
+```{r}
+ggplot(data = accidents, aes(x = AccidentYear)) + 
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
+  ylab("Number of accidents") +
+  xlab("Year") +
+  ggtitle("Total Accidents")
+
+
+bike_accidents <- accidents |> 
+  filter(AccidentInvolvingBicycle == "true")
+
+ggplot(data = bike_accidents, aes(x = AccidentYear)) + 
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
+  ylab("Number of accidents") +
+  xlab("Year") +
+  ggtitle("Accidents involving bicycles")
+```
+
+* **Task 4:** Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
+
+```{r}
+ggplot() +
+  geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
+  geom_sf(data = districts, color = "blue", fill = NA)
+
+```
+
+
+
+* **Task 5:** Imagine you are given the task of detecting spatial clusters of elevated bicycle accident occurrence (without considering their severity). How would you characterize such "bicycle accident clusters"? Try to define properties that can be used to describe and identify such clusters, and that can be used to choose and parameterize a clustering method suitable for the task. Try to use natural, but precise and concise language in your answer.
+
+```{r}
+
+```
+
+
+
+* **Task 6:** From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
+
+```{r}
+bike_accidents2018 <- st_coordinates(bike_accidents |> 
+  filter(AccidentYear == "2018"))
+bike_accidents2019 <- st_coordinates(bike_accidents |> 
+  filter(AccidentYear == "2019"))
+bike_accidents2020 <- st_coordinates(bike_accidents |> 
+  filter(AccidentYear == "2020"))
+bike_accidents2021 <- st_coordinates(bike_accidents |> 
+  filter(AccidentYear == "2021"))
+
+# accidents from 2018
+kNNdistplot(bike_accidents2018, k = 3)
+abline(h = 500, col = "red")
+db2018 <- dbscan(bike_accidents2018, eps = 500, MinPts = 3)
+str(db2018)
+plot(bike_accidents2018, pch = 19, cex = 0.5, col = db2018$cluster + 1, asp = 1, main = "Bike accidents 2018")
+
+kNNdistplot(bike_accidents2019, k = 3)
+abline(h = 500, col = "red")
+db2019 <- dbscan(bike_accidents2019, eps = 500, MinPts = 3)
+str(db2019)
+plot(bike_accidents2019, pch = 19, cex = 0.5, col = db2019$cluster + 1, asp = 1, main = "Bike accidents 2019")
+
+kNNdistplot(bike_accidents2020, k = 3)
+abline(h = 420, col = "red")
+db2020 <- dbscan(bike_accidents2020, eps = 420, MinPts = 3)
+str(db2020)
+plot(bike_accidents2020, pch = 19, cex = 0.5, col = db2020$cluster + 1, asp = 1, main = "Bike accidents 2020")
+
+kNNdistplot(bike_accidents2021, k = 3)
+abline(h = 415, col = "red")
+db2021 <- dbscan(bike_accidents2021, eps = 415, MinPts = 3)
+str(db2021)
+plot(bike_accidents2021, pch = 19, cex = 0.5, col = db2021$cluster + 1, asp = 1, main = "Bike accidents 2021")
+```
+
+
+* **Task 7**: Discuss your results, including also limitations or problems, and possible other methods that you could have used.
+
+```{r}
+
+```
+
