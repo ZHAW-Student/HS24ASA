@@ -1,7 +1,7 @@
 ---
 title: "Data Challange 1"
 author: "Saskia Gianola"
-date: "October 2024"
+date: "October/November 2024"
 format: 
   html:
     embed-resources: true
@@ -18,8 +18,7 @@ execute:                      # Set global options for execution of code blocks
   warning: false
   message: false
 ---
-
-```{r, message=FALSE}
+```{r, echo=FALSE}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
@@ -29,52 +28,77 @@ library(dbscan)
 library(fpc)
 ```
 
+# First part: Spatial Clustering ####
 * **Task 1:** Download and import the road accident data from Open Data Zurich (ODZ) using an appropriate file format. If needed, transform to the Swiss projected CH1903+/LV95 coordinate system (EPSG = 2056).
 
-```{r, message=FALSE}
+```{r, results='hide'}
 accidents <- st_read("Session2/roadtrafficaccidentlocations.gpkg")
 boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
 districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
 ```
 
 * **Task 2:** Report the following numbers in table(s):
-  a. Number of accidents by accident severity category
-  b. Number of accidents by accident type
-  c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)?
   
-```{r}
-accidents |> 
-  count(AccidentSeverityCategory)
+```{r, echo=FALSE}
+accidents_no_geom <- st_drop_geometry(accidents) # drop geometry to make code more efficient
 
-accidents |> 
+acc_sever <- accidents_no_geom |> 
+   count(AccidentSeverityCategory)
+
+acc_type <- accidents_no_geom |> 
   count(AccidentType)
 
-accidents |> 
+acc_ped <- accidents_no_geom |> 
   count(AccidentInvolvingPedestrian)
 
-accidents |> 
+acc_bike <- accidents_no_geom |> 
   count(AccidentInvolvingBicycle)
 
-accidents |> 
+acc_moto <- accidents_no_geom |> 
   count(AccidentInvolvingMotorcycle)
 
-accidents |> 
+acc_ped_moto <- accidents_no_geom |> 
   count(AccidentInvolvingPedestrian, AccidentInvolvingMotorcycle)
 
-accidents |> 
+acc_ped_bike <- accidents_no_geom |> 
   count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle)
 
-accidents |> 
+acc_moto_bike <- accidents_no_geom |> 
   count(AccidentInvolvingMotorcycle, AccidentInvolvingBicycle)
 
-accidents |> 
+acc_ped_bike_moto <- accidents_no_geom |> 
   count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle, AccidentInvolvingMotorcycle)
   
 ```
+  a. Number of accidents by accident severity category
+  
+```{r}
+acc_sever
+```
+  
+  b. Number of accidents by accident type
+  
+```{r}
+acc_type
+```
+
+  
+  c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)?
+  
+```{r}
+acc_ped
+acc_bike
+acc_moto
+acc_ped_bike
+acc_ped_moto
+acc_moto_bike
+acc_ped_bike_moto
+```
+
   
 * **Task 3:** Generate a plot showing the temporal evolution of the number of accidents from 2011 to 2023. Label each year with the corresponding number of accidents. Choose a plot type that is suitable for this type of temporal data. Bonus: Show also the data for the bicycle accidents (cf. Task 4) in the same plot.
 
-```{r}
+```{r, echo=FALSE}
 ggplot(data = accidents, aes(x = AccidentYear)) + 
   geom_bar(fill = "lightblue") +
   geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
@@ -96,7 +120,7 @@ ggplot(data = bike_accidents, aes(x = AccidentYear)) +
 
 * **Task 4:** Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
 
-```{r}
+```{r, echo=FALSE}
 ggplot() +
   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -115,15 +139,13 @@ ggplot() +
 
 * **Task 5:** Imagine you are given the task of detecting spatial clusters of elevated bicycle accident occurrence (without considering their severity). How would you characterize such "bicycle accident clusters"? Try to define properties that can be used to describe and identify such clusters, and that can be used to choose and parameterize a clustering method suitable for the task. Try to use natural, but precise and concise language in your answer.
 
-```{r}
-
-```
+KOMMENTAR 
 
 
 
 * **Task 6:** From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
 
-```{r}
+```{r, echo=FALSE}
 bike_accidents2018 <- st_coordinates(bike_accidents |> 
   filter(AccidentYear == "2018"))
 bike_accidents2019 <- st_coordinates(bike_accidents |> 
@@ -162,7 +184,30 @@ plot(bike_accidents2021, pch = 19, cex = 0.5, col = db2021$cluster + 1, asp = 1,
 
 * **Task 7**: Discuss your results, including also limitations or problems, and possible other methods that you could have used.
 
-```{r}
+KOMMENTAR
 
-```
+# Second part: Polygon Delineation ####
+* **Task 8**: Given the clusters that you have extracted in Part 1 of the DC1 assignment:
+  a. Define a set of criteria that a method should fulfill that can be used to delineate the given clusters by polygons. Use
+  free text for these definitions, but try to be concise and precise. (Note: These criteria can also be used in the subsequent Discussion to evaluate whether they have been met.)
+  b. Choose a polygon delineation method that you deem appropriate in light of the above
+criteria. Justify your choice.
+* **Task 9**: From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
+* **Task 10**: Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
+
+# Third part of DC1 ####
+
+
+# Fourth part of DC1 ####
+
+# Fifth part of DC1 ####
+
+# Time spend on DC1 and lab partner ####
+* Part 1: 2h
+* Part 2:
+* Part 3:
+* Part 4:
+* Part 5:
+
+
 
