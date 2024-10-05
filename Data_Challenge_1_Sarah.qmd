@@ -24,7 +24,7 @@ library(ggplot2)
 library(lubridate)
 ```
 
-# Assignment
+# First part: Spatial Clustering ####
 
 * **Task 0:** Create a new R Project and new R Script using a clean template and initialization of the environment. We recommend you use RMarkdown with HTML as target output.
 
@@ -181,4 +181,122 @@ title(main="2021")
 * **Task 7**: Discuss your results, including also limitations or problems, and possible other methods that you could have used.
 
 
-Overall its difficult to separate it. But the threshold of 500m seems appropriate. In all cases the exterior districts are separated from the central area through different forest- areas and other rural zones. If I would like to look closer at the differences in the city center i would need a lower threshold or networt data.
+Overall its difficult to separate it. But the threshold of 500m seems appropriate. In all cases the exterior districts are separated from the central area through different forest- areas and other rural zones. If I would like to look closer at the differences in the city center i would need a lower threshold or network data.
+
+# Second part: Polygon Delineation ####
+* **Task 8**: Given the clusters that you have extracted in Part 1 of the DC1 assignment:
+  a. Define a set of criteria that a method should fulfill that can be used to delineate the given clusters by polygons. Use free text for these definitions, but try to be concise and precise. (Note: These criteria can also be used in the subsequent Discussion to evaluate whether they have been met.)
+  
+It should be capable to account for the concave indents in the clusters. The clusters should not overlap (within a year).
+  
+  b. Choose a polygon delineation method that you deem appropriate in light of the above
+criteria. Justify your choice.
+
+I will use Concave hull as a delineation method, as it does account for the concave shape, but will not make holes in the clusters.
+
+
+* **Task 9**: From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
+
+```{r, echo = FALSE, message = FALSE}
+
+#add cluster-id to each year
+db18_c<- st_as_sf(as.data.frame(cbind(onlybikes18, db18$cluster)),coords = c("X", "Y"),
+    crs = 2056)
+db19_c<- st_as_sf(as.data.frame(cbind(onlybikes19, db19$cluster)),coords = c("X", "Y"),
+    crs = 2056)
+db20_c<- st_as_sf(as.data.frame(cbind(onlybikes20, db20$cluster)),coords = c("X", "Y"),
+    crs = 2056)
+db21_c<- st_as_sf(as.data.frame(cbind(onlybikes21, db21$cluster)),coords = c("X", "Y"),
+    crs = 2056)
+
+#comparison of plots
+plot(x=db18_c$X, y=db18_c$Y, pch = 19, cex = 0.5, col = db18_c$V4 + 1, asp = 1)
+title(main="2018")
+plot(onlybikes18, pch = 19, cex = 0.5, col = db18$cluster + 1, asp = 1) #looks good
+
+#split each set into clusters
+  #0 is left out as it could not be clustered
+db18_c_1 <- db18_c |>  filter(V4 == "1") 
+db18_c_2 <- db18_c |>  filter(V4 == "2") 
+db18_c_3 <- db18_c |>  filter(V4 == "3") 
+db18_c_4 <- db18_c |>  filter(V4 == "4") 
+db18_c_5 <- db18_c |>  filter(V4 == "5") 
+db18_c_6 <- db18_c |>  filter(V4 == "6") 
+db18_c_7 <- db18_c |>  filter(V4 == "7") 
+db18_c_8 <- db18_c |>  filter(V4 == "8") 
+
+#compute clusters per id
+library(concaveman)
+#the concavity is defined based on the biggest cluster of points
+db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+
+#2
+db18_c_2_c <- concaveman::concaveman(db18_c_2,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_2_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_2, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+#3
+db18_c_3_c <- concaveman::concaveman(db18_c_3,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_3_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_3, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+#4
+db18_c_4_c <- concaveman::concaveman(db18_c_4,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_4_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_4, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+#5
+db18_c_5_c <- concaveman::concaveman(db18_c_5,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_5_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_5, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+#6
+db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+#7
+db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+#8
+db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
+  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
+  coord_sf(datum = 2056)
+```
+
+
+* **Task 10**: Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
+
+Connecting those points to a road-network or data about the road- network would be helpful.
+
+
+# Third part of DC1 ####
+
+
+# Fourth part of DC1 ####
+
+# Fifth part of DC1 ####
+
+
