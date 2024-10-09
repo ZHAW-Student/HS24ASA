@@ -30,10 +30,7 @@ library(lubridate)
 
 * **Task 1:** Download and import the road accident data from Open Data Zurich (ODZ) using an appropriate file format. If needed, transform to the Swiss projected CH1903+/LV95 coordinate system (EPSG = 2056).
 ```{r, echo = FALSE, message = FALSE}
-
-
 accidents <- sf::st_read("Session_2/roadtrafficaccidentlocations.gpkg")
-
 
 boundary <-sf::st_read("Session_2/Zurich_city_boundary_2024.gpkg")
 
@@ -225,65 +222,91 @@ db18_c_6 <- db18_c |>  filter(V4 == "6")
 db18_c_7 <- db18_c |>  filter(V4 == "7") 
 db18_c_8 <- db18_c |>  filter(V4 == "8") 
 
+db19_c_1 <- db19_c |>  filter(V4 == "1") 
+db19_c_2 <- db19_c |>  filter(V4 == "2") 
+db19_c_3 <- db19_c |>  filter(V4 == "3") 
+db19_c_4 <- db19_c |>  filter(V4 == "4") 
+db19_c_5 <- db19_c |>  filter(V4 == "5") 
+db19_c_6 <- db19_c |>  filter(V4 == "6") 
+db19_c_7 <- db19_c |>  filter(V4 == "7") 
+db19_c_8 <- db19_c |>  filter(V4 == "8") 
+db19_c_9 <- db19_c |>  filter(V4 == "9") 
+db19_c_10 <- db19_c |>  filter(V4 == "10") 
+
+
 #compute clusters per id
 library(concaveman)
 #the concavity is defined based on the biggest cluster of points
 db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
-
-ggplot() +
-  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-
-#2
 db18_c_2_c <- concaveman::concaveman(db18_c_2,concavity = 2, length_threshold = 0)
-
-ggplot() +
-  geom_sf(data = db18_c_2_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_2, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-#3
 db18_c_3_c <- concaveman::concaveman(db18_c_3,concavity = 2, length_threshold = 0)
-
-ggplot() +
-  geom_sf(data = db18_c_3_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_3, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-#4
 db18_c_4_c <- concaveman::concaveman(db18_c_4,concavity = 2, length_threshold = 0)
-
-ggplot() +
-  geom_sf(data = db18_c_4_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_4, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-#5
 db18_c_5_c <- concaveman::concaveman(db18_c_5,concavity = 2, length_threshold = 0)
+db18_c_6_c <- concaveman::concaveman(db18_c_6,concavity = 2, length_threshold = 0)
+db18_c_7_c <- concaveman::concaveman(db18_c_7,concavity = 2, length_threshold = 0)
+db18_c_8_c <- concaveman::concaveman(db18_c_8,concavity = 2, length_threshold = 0)
+
+db19_c_1_c <- concaveman::concaveman(db19_c_1,concavity = 2, length_threshold = 0)
+db19_c_2_c <- concaveman::concaveman(db19_c_2,concavity = 2, length_threshold = 0)
+db19_c_3_c <- concaveman::concaveman(db19_c_3,concavity = 2, length_threshold = 0)
+db19_c_4_c <- concaveman::concaveman(db19_c_4,concavity = 2, length_threshold = 0)
+db19_c_5_c <- concaveman::concaveman(db19_c_5,concavity = 2, length_threshold = 0)
+db19_c_6_c <- concaveman::concaveman(db19_c_6,concavity = 2, length_threshold = 0)
+db19_c_7_c <- concaveman::concaveman(db19_c_7,concavity = 2, length_threshold = 0)
+db19_c_8_c <- concaveman::concaveman(db19_c_8,concavity = 2, length_threshold = 0)
+db19_c_9_c <- concaveman::concaveman(db19_c_9,concavity = 2, length_threshold = 0)
+db19_c_10_c <- concaveman::concaveman(db19_c_10,concavity = 2, length_threshold = 0)
+
+
+
+#plot all of them of 2018
+ggplot() +
+  geom_sf(data = boundary, color = "black", fill= NA,alpha = 0.3)+
+  geom_sf(data = db18_c_1_c,  color = "red", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_1, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_2_c,  color = "blue", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_2, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_3_c,  color = "green", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_3, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_4_c,  color = "darkgreen", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_4, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_5_c,  color = "orange", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_5, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_6_c,  color = "purple", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_6, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_7_c,  color = "pink", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_7, color = "black", size = 0.3) +
+  geom_sf(data = db18_c_8_c,  color = "turquoise", fill = NA, alpha = 0.2) +
+  geom_sf(data = db18_c_8, color = "black", size = 0.3) +
+  coord_sf(datum = 2056)+
+  theme_bw()
 
 ggplot() +
-  geom_sf(data = db18_c_5_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_5, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-#6
-db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
+  geom_sf(data = boundary, color = "black", fill= NA,alpha = 0.3)+
+  geom_sf(data = db19_c_1_c,  color = "red", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_1, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_2_c,  color = "blue", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_2, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_3_c,  color = "green", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_3, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_4_c,  color = "darkgreen", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_4, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_5_c,  color = "orange", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_5, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_6_c,  color = "purple", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_6, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_7_c,  color = "pink", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_7, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_8_c,  color = "turquoise", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_8, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_9_c,  color = "lightblue", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_9, color = "black", size = 0.3) +
+  geom_sf(data = db19_c_10_c,  color = "darkorange", fill = NA, alpha = 0.2) +
+  geom_sf(data = db19_c_10, color = "black", size = 0.3) +
+  coord_sf(datum = 2056)+
+  theme_bw()
 
-ggplot() +
-  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-#7
-db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
 
-ggplot() +
-  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
-#8
-db18_c_1_c <- concaveman::concaveman(db18_c_1,concavity = 2, length_threshold = 0)
-
-ggplot() +
-  geom_sf(data = db18_c_1_c,  color = "blue", fill = NA, alpha = 0.1) +
-  geom_sf(data = db18_c_1, color = "black", size = 0.2) +
-  coord_sf(datum = 2056)
 ```
 
 
