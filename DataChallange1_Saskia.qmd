@@ -26,6 +26,9 @@ library(sf)
 library(cluster)
 library(dbscan)
 library(fpc)
+library(concaveman)
+library(adehabitatHR)
+
 ```
 
 # First part: Spatial Clustering ####
@@ -139,7 +142,7 @@ ggplot() +
 
 * **Task 5:** Imagine you are given the task of detecting spatial clusters of elevated bicycle accident occurrence (without considering their severity). How would you characterize such "bicycle accident clusters"? Try to define properties that can be used to describe and identify such clusters, and that can be used to choose and parameterize a clustering method suitable for the task. Try to use natural, but precise and concise language in your answer.
 
-KOMMENTAR 
+I would expect the accidents to cluster on certain parts of the streets. Possible locations are intersections, crossings with trams or pedestrians. Also, i would expect them to cluster on places with low visibility, such as corners. Bikes move in a constraint way, meaning they have to follow the roads. This means clusters will be seperated by buildings or any other obstacles. Therefor, it seems quite difficult to me to find clusters that are reliable. There are a lot of spaces without accidents, simply because bikes can't move there. Also, the density of the accidents will vary, just as the density of the streets varies. 
 
 
 
@@ -170,44 +173,327 @@ plot(bike_accidents2019, pch = 19, cex = 0.5, col = db2019$cluster + 1, asp = 1,
 
 kNNdistplot(bike_accidents2020, k = 3)
 abline(h = 420, col = "red")
-db2020 <- dbscan(bike_accidents2020, eps = 420, MinPts = 3)
+db2020 <- dbscan(bike_accidents2020, eps = 500, MinPts = 3)
 str(db2020)
 plot(bike_accidents2020, pch = 19, cex = 0.5, col = db2020$cluster + 1, asp = 1, main = "Bike accidents 2020")
 
 kNNdistplot(bike_accidents2021, k = 3)
 abline(h = 415, col = "red")
-db2021 <- dbscan(bike_accidents2021, eps = 415, MinPts = 3)
+db2021 <- dbscan(bike_accidents2021, eps = 500, MinPts = 3)
 str(db2021)
 plot(bike_accidents2021, pch = 19, cex = 0.5, col = db2021$cluster + 1, asp = 1, main = "Bike accidents 2021")
+
+
+```
+
+
+First I performed a DBSCAN cluster analysis. But 500 m seem a lot for the distance. Also, the density varies, which is a weakness of DBSCAN. Therefor, I tried using optics.
+
+```{r, echo=FALSE}
+ops_reach2018 <- optics(bike_accidents2018)
+ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 500)
+ops_reach2018
+plot(ops_reach2018)
+plot(bike_accidents2018, cex = 0.4, pch = 19, col = ops_reach2018$cluster + 1, asp = 1)
+ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 250)
+ops_reach2018
+plot(ops_reach2018)
+plot(bike_accidents2018, cex = 0.4, pch = 19, col = ops_reach2018$cluster + 1, asp = 1)
+hullplot(bike_accidents2018, ops_reach2018, asp = 1)
+
+
+ops_reachXi2018 <- extractXi(ops_reach2018, xi = 0.06)
+plot(ops_reachXi2018)
+hullplot(bike_accidents2018, ops_reachXi2018, asp = 1)
+
 ```
 
 
 * **Task 7**: Discuss your results, including also limitations or problems, and possible other methods that you could have used.
 
-KOMMENTAR
+Even with the eye it is hard to identify clusters. Using optics with the same threshold of 500 m, most accidents are classified as one cluster. But if the eps is lowered to 250, more cluster are visible and the clustering makes more sense. With extractXi it's possible to make even better clusters. Nevertheless, generally it can be said that in the centre of Zurich, there are a lot of bike accidents. The accidents happen on roads, which is clearly visible. The density of accidents lowers with rising distance to the centre, just as roads do. The thresholds could be adapted even more, maybe also using a streetmap as background. For further exercises, I will be using the DBSCAN clusters.
 
 # Second part: Polygon Delineation ####
 * **Task 8**: Given the clusters that you have extracted in Part 1 of the DC1 assignment:
-  a. Define a set of criteria that a method should fulfill that can be used to delineate the given clusters by polygons. Use
-  free text for these definitions, but try to be concise and precise. (Note: These criteria can also be used in the subsequent Discussion to evaluate whether they have been met.)
-  b. Choose a polygon delineation method that you deem appropriate in light of the above
-criteria. Justify your choice.
+  a. Define a set of criteria that a method should fulfill that can be used to delineate the given clusters by polygons. Use free text for these definitions, but try to be concise and precise. (Note: These criteria can also be used in the subsequent Discussion to evaluate whether they have been met.)
+  
+As described above, the accidents happen along roads, maybe even more on crossings. The method should be able to form round clusters for the crossings as well as longer shaped polygones to determine roads with more accidents.  
+
+  b. Choose a polygon delineation method that you deem appropriate in light of the above criteria. Justify your choice.
+  
+For this task, I chose the concave hull as I want the polygone to include different froms of clusters, but I don't want it to generate holes within the clusters. Also, the clusters should not overlap. 
+
+
 * **Task 9**: From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
+
+```{r , echo = FALSE}
+# add cluster info to data
+bike_acc2018_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2018, db2018$cluster)), 
+                              coords = c("X", "Y"), crs = 2056)
+bike_acc2019_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2019, db2019$cluster)), 
+                              coords = c("X", "Y"), crs = 2056)
+
+summary(bike_acc2018_clus) # for 2018 data, there are 8 clusters
+summary(bike_acc2019_clus) # for 2019 data, there are 10 clusters
+
+# separate data into single clusters
+
+bike_acc2018_c1 <- bike_acc2018_clus |> 
+  filter(V4 == 1)
+bike_acc2018_c2 <- bike_acc2018_clus |> 
+  filter(V4 == 2)
+bike_acc2018_c3 <- bike_acc2018_clus |> 
+  filter(V4 == 3)
+bike_acc2018_c4 <- bike_acc2018_clus |> 
+  filter(V4 == 4)
+bike_acc2018_c5 <- bike_acc2018_clus |> 
+  filter(V4 == 5)
+bike_acc2018_c6 <- bike_acc2018_clus |> 
+  filter(V4 == 6)
+bike_acc2018_c7 <- bike_acc2018_clus |> 
+  filter(V4 == 7)
+bike_acc2018_c8 <- bike_acc2018_clus |> 
+  filter(V4 == 8)
+
+bike_acc2019_c1 <- bike_acc2019_clus |> 
+  filter(V4 == 1)
+bike_acc2019_c2 <- bike_acc2019_clus |> 
+  filter(V4 == 2)
+bike_acc2019_c3 <- bike_acc2019_clus |> 
+  filter(V4 == 3)
+bike_acc2019_c4 <- bike_acc2019_clus |> 
+  filter(V4 == 4)
+bike_acc2019_c5 <- bike_acc2019_clus |> 
+  filter(V4 == 5)
+bike_acc2019_c6 <- bike_acc2019_clus |> 
+  filter(V4 == 6)
+bike_acc2019_c7 <- bike_acc2019_clus |> 
+  filter(V4 == 7)
+bike_acc2019_c8 <- bike_acc2019_clus |> 
+  filter(V4 == 8)
+bike_acc2019_c9 <- bike_acc2019_clus |> 
+  filter(V4 == 9)
+bike_acc2019_c10 <- bike_acc2019_clus |> 
+  filter(V4 == 10)
+
+# compare thresholds
+cave_acc2018_2 <- concaveman(bike_acc2018_c1, concavity = 2, length_threshold = 0)
+cave_acc2018_1 <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
+cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0)
+
+
+ggplot() +
+  geom_sf(data=bike_acc2018_c1, size = 0.5) +
+  geom_sf(data = cave_acc2018_05, color = "pink", fill = NA) +
+  geom_sf(data = cave_acc2018_1, color = "green", fill = NA) +
+  geom_sf(data = cave_acc2018_2, color = "blue", fill = NA) + 
+  ggtitle("find best concavity value")
+
+# 1 seems best value for concavity
+bike_acc2018_c1_con <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
+bike_acc2018_c2_con <- concaveman(bike_acc2018_c2, concavity = 1, length_threshold = 0)
+bike_acc2018_c3_con <- concaveman(bike_acc2018_c3, concavity = 1, length_threshold = 0)
+bike_acc2018_c4_con <- concaveman(bike_acc2018_c4, concavity = 1, length_threshold = 0)
+bike_acc2018_c5_con <- concaveman(bike_acc2018_c5, concavity = 1, length_threshold = 0)
+bike_acc2018_c6_con <- concaveman(bike_acc2018_c6, concavity = 1, length_threshold = 0)
+bike_acc2018_c7_con <- concaveman(bike_acc2018_c7, concavity = 1, length_threshold = 0)
+bike_acc2018_c8_con <- concaveman(bike_acc2018_c8, concavity = 1, length_threshold = 0)
+
+bike_acc2019_c1_con <- concaveman(bike_acc2019_c1, concavity = 1, length_threshold = 0)
+bike_acc2019_c2_con <- concaveman(bike_acc2019_c2, concavity = 1, length_threshold = 0)
+bike_acc2019_c3_con <- concaveman(bike_acc2019_c3, concavity = 1, length_threshold = 0)
+bike_acc2019_c4_con <- concaveman(bike_acc2019_c4, concavity = 1, length_threshold = 0)
+bike_acc2019_c5_con <- concaveman(bike_acc2019_c5, concavity = 1, length_threshold = 0)
+bike_acc2019_c6_con <- concaveman(bike_acc2019_c6, concavity = 1, length_threshold = 0)
+bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_threshold = 0)
+bike_acc2019_c8_con <- concaveman(bike_acc2019_c8, concavity = 1, length_threshold = 0)
+bike_acc2019_c9_con <- concaveman(bike_acc2019_c9, concavity = 1, length_threshold = 0)
+bike_acc2019_c10_con <- concaveman(bike_acc2019_c10, concavity = 1, length_threshold = 0)
+
+ggplot() +
+  geom_sf(data = bike_acc2018_c1, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c1_con, color = "pink", fill = NA) + 
+  geom_sf(data = bike_acc2018_c2, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c2_con, color = "purple", fill = NA) + 
+  geom_sf(data = bike_acc2018_c3, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c3_con, color = "green", fill = NA) + 
+  geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c4_con, color = "darkgreen", fill = NA) + 
+  geom_sf(data = bike_acc2018_c5, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = NA) + 
+  geom_sf(data = bike_acc2018_c6, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c6_con, color = "lightblue", fill = NA) + 
+  geom_sf(data = bike_acc2018_c7, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c7_con, color = "orange", fill = NA) + 
+  geom_sf(data = bike_acc2018_c8, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c8_con, color = "red", fill = NA) +
+  theme_minimal() +
+  ggtitle("Clusters of bike accidents 2018")
+
+ggplot() +
+  geom_sf(data = bike_acc2019_c1, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c1_con, color = "pink", fill = NA) + 
+  geom_sf(data = bike_acc2019_c2, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c2_con, color = "purple", fill = NA) + 
+  geom_sf(data = bike_acc2019_c3, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c3_con, color = "green", fill = NA) + 
+  geom_sf(data = bike_acc2019_c4, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c4_con, color = "darkgreen", fill = NA) + 
+  geom_sf(data = bike_acc2019_c5, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c5_con, color = "blue", fill = NA) + 
+  geom_sf(data = bike_acc2019_c6, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c6_con, color = "lightblue", fill = NA) + 
+  geom_sf(data = bike_acc2019_c7, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = NA) + 
+  geom_sf(data = bike_acc2019_c8, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c8_con, color = "red", fill = NA) +
+  geom_sf(data = bike_acc2019_c9, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c9_con, color = "yellow", fill = NA) + 
+  geom_sf(data = bike_acc2019_c10, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2019_c10_con, color = "brown", fill = NA) +
+  theme_minimal() +
+  ggtitle("Clusters of bike accidents 2019")
+
+# Compute the Jaccard Index
+## unify single polygones from 2018 and 2019
+poly2018 <- st_union(bike_acc2018_c1_con, 
+                     bike_acc2018_c2_con,
+                     bike_acc2018_c3_con,
+                     bike_acc2018_c4_con,
+                     bike_acc2018_c5_con,
+                     bike_acc2018_c6_con,
+                     bike_acc2018_c7_con,
+                     bike_acc2018_c8_con)
+poly2019 <- st_union(bike_acc2019_c1_con, 
+                     bike_acc2019_c2_con,
+                     bike_acc2019_c3_con,
+                     bike_acc2019_c4_con,
+                     bike_acc2019_c5_con,
+                     bike_acc2019_c6_con,
+                     bike_acc2019_c7_con,
+                     bike_acc2019_c8_con,
+                     bike_acc2019_c9_con,
+                     bike_acc2019_c10_con)
+
+## compute difference
+poly2018_2019_diff <- st_difference(poly2018, poly2019)
+
+plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
+     type = "n", asp = 1)
+plot(poly2018, border = "darkblue", lwd = 2, add = TRUE)
+plot(poly2018_2019_diff, col = "lightblue", border = NA, add = TRUE)
+plot(poly2019, col = "pink", border = "purple", add = TRUE)
+
+cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
+    "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
+    "Difference Area:    ", sf::st_area(poly2018_2019_diff), "m^2 \n")
+```
 * **Task 10**: Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
 
-# Third part of DC1 ####
+The last plot with the difference in the area shows that over the two years, the biggest overlap is in the centre of the city. The accidents in the surrounding area varies from 2018 to 2019. For better understanding of the accidents, such an analysis should be done over all available data. If the parameters are refined, the results will probalbly tell us something about where, over many years, most bike accidents happen. To have a closer look at the centre, where most accidents seem to happen, this are should be investigated more detailed, for example by excluding accidents outside certain districts. Nevetheless, such analysis can help finding hotspots in bike accidents. 
 
+
+# Third part: Density estimation ####
+* **Task 11:** Similarly to the clustering and polygon delineation tasks carried out in Parts 1 and 2 of DC1, respectively, start off by defining criteria for using KDE to detect areas/hotspots of elevated bicycle accident density, and explain your reasoning.
+
+KOMMENTAR
+
+
+* **Task 12:** Choose any **two years** from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
+
+```{r}
+ext_val <- 0.3    # 0.3
+grid_val <- 300   # 300
+
+# Convert the SF_PPOLYGON object to an SpatialPointsDataFrame object
+bike_accidents_sf <- bike_accidents|> 
+  filter(bike_accidents$AccidentInvolvingBicycle == "true")
+
+bike_accidents_2018_sf <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear == 2018)
+bike_accidents_2019_sf <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear == 2019)
+
+bike_acc2018_point <- as(bike_accidents_2018_sf, "Spatial")
+bike_acc2019_point <- as(bike_accidents_2019_sf, "Spatial")
+
+# First, use the reference bandwidth method for bandwith selection (h = "href")
+# Positioning of legend box is optimized for knitr HTML output
+
+# Compute UD 2018
+ud <- adehabitatHR::kernelUD(bike_acc2018_point, grid = grid_val, extent = ext_val, h = "href")
+hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
+hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
+
+# Compute UD 2019
+ud <- adehabitatHR::kernelUD(bike_acc2019_point, grid = grid_val, extent = ext_val, h = "href")
+hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
+hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
+
+graphics::image(ud, xlab = "x [m]", ylab = "y [m]",
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+xmin <- min(ud@coords[,1])
+xmax <- max(ud@coords[,1])
+ymin <- min(ud@coords[,2])
+ymax <- max(ud@coords[,2])
+plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+axis(1)
+axis(2, pos = xmin - 100)
+text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
+     adj = c(NA, -4), srt = 90)
+title("KDE with bandwidth selection method HREF", line = -0.3)
+legend("topright", c("HR 50%", "HR 95%"), 
+       col = c("black", "blue"), lwd = c(3, 2), lty = c(4, 1), 
+       inset = c(0.19, 0.06), cex = 0.75)
+cat("Size of home range with HREF (95 %): ", hr95$area, sep = "", "\n")
+cat("Size of core area with HREF (50 %): ", hr50$area, sep = "", "\n")
+
+# Now use the reference least-squares cross-validation nethod (h = "LSCV")
+# Positioning of legend box is optimized for knitr HTML output
+ud <- adehabitatHR::kernelUD(ung_pts_sp, grid = grid_val, extent = ext_val, h = "LSCV")
+hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
+hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
+
+graphics::image(ud, xlab = "x [m]", ylab = "y [m]", 
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+xmin <- min(ud@coords[,1])
+xmax <- max(ud@coords[,1])
+ymin <- min(ud@coords[,2])
+ymax <- max(ud@coords[,2])
+plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+axis(1)
+axis(2, pos = xmin - 100)
+text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
+     adj = c(NA, -4), srt = 90)
+title("KDE with bandwidth selection method LSCV", line = -0.3)
+legend("topright", c("HR 50%", "HR 95%"), col = c("black", "blue"), 
+       lwd = c(3, 2), lty = c(4, 1), inset = c(0.19, 0.06), cex = 0.75)
+cat("Size of home range with LSCV (95 %): ", hr95$area, sep = "", "\n")
+cat("Size of core area with LSCV (50 %): ", hr50$area, sep = "", "\n")
+```
+
+* **Task 13:** Compute the "volume of intersection" ("VI") between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the `adehabitatHR` package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
+
+```{r}
+
+```
+
+* **Task 14:** Discuss your results for this part of DC1 (density estimation). What did you find? Compare the results of this part with the clusters/polygons of Parts 1 and 2 (see note below): What are the commonalities? What are the differences? Which method(s) perform more adequately than others for the given problem and data? Which method(s) would you recommend, and which ones not? Why? (You are free to add more points to the discussion.)
+
+KOMMENTAR
 
 # Fourth part of DC1 ####
 
 # Fifth part of DC1 ####
 
 # Time spend on DC1 and lab partner ####
-* Part 1: 2h
-* Part 2:
+* Part 1: 2.5h
+* Part 2: 2.5h
 * Part 3:
 * Part 4:
 * Part 5:
-
+Lab partner: 
 
 
