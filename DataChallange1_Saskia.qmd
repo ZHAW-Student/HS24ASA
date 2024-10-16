@@ -402,10 +402,11 @@ KOMMENTAR
 * **Task 12:** Choose any **two years** from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
 
 ```{r}
+# set parameters
 ext_val <- 0.3    # 0.3
 grid_val <- 300   # 300
 
-# Convert the SF_PPOLYGON object to an SpatialPointsDataFrame object
+# get sf data for bike accidents in 2018 and 2019
 bike_accidents_sf <- bike_accidents|> 
   filter(bike_accidents$AccidentInvolvingBicycle == "true")
 
@@ -414,30 +415,35 @@ bike_accidents_2018_sf <- bike_accidents_sf |>
 bike_accidents_2019_sf <- bike_accidents_sf |> 
   filter(bike_accidents_sf$AccidentYear == 2019)
 
+# drop everything except geometry
+bike_accidents_2018_sf <- st_zm(bike_accidents_2018_sf[,22])
+bike_accidents_2019_sf <- st_zm(bike_accidents_2019_sf[,22])
+
+# convert to SpatialPointsDataFrame
 bike_acc2018_point <- as(bike_accidents_2018_sf, "Spatial")
 bike_acc2019_point <- as(bike_accidents_2019_sf, "Spatial")
 
 # First, use the reference bandwidth method for bandwith selection (h = "href")
-# Positioning of legend box is optimized for knitr HTML output
 
 # Compute UD 2018
-ud <- adehabitatHR::kernelUD(bike_acc2018_point, grid = grid_val, extent = ext_val, h = "href")
-hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
-hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
+ud_18 <- adehabitatHR::kernelUD(bike_acc2018_point, grid = grid_val, extent = ext_val, h = "href")
+hr95_18 <- adehabitatHR::getverticeshr(ud_18, percent = 95)   # retrieve home range (95th volume percentile)
+hr50_18 <- adehabitatHR::getverticeshr(ud_18, percent = 50)   # retrieve core area (50th volume percentile)
 
 # Compute UD 2019
-ud <- adehabitatHR::kernelUD(bike_acc2019_point, grid = grid_val, extent = ext_val, h = "href")
-hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
-hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
+ud_19 <- adehabitatHR::kernelUD(bike_acc2019_point, grid = grid_val, extent = ext_val, h = "href")
+hr95_19 <- adehabitatHR::getverticeshr(ud_19, percent = 95)   # retrieve home range (95th volume percentile)
+hr50_19 <- adehabitatHR::getverticeshr(ud_19, percent = 50)   # retrieve core area (50th volume percentile)
 
-graphics::image(ud, xlab = "x [m]", ylab = "y [m]",
+# plot KDE for 2018 data
+graphics::image(ud_18, xlab = "x [m]", ylab = "y [m]",
                 col = hcl.colors(200, palette = "heat 2", rev = TRUE))
-xmin <- min(ud@coords[,1])
-xmax <- max(ud@coords[,1])
-ymin <- min(ud@coords[,2])
-ymax <- max(ud@coords[,2])
-plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
-plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+xmin <- min(ud_18$ZH@coords[,1])
+xmax <- max(ud_18$ZH@coords[,1])
+ymin <- min(ud_18$ZH@coords[,2])
+ymax <- max(ud_18$ZH@coords[,2])
+plot(hr50_18, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr95_18, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
 axis(1)
 axis(2, pos = xmin - 100)
 text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
@@ -446,21 +452,41 @@ title("KDE with bandwidth selection method HREF", line = -0.3)
 legend("topright", c("HR 50%", "HR 95%"), 
        col = c("black", "blue"), lwd = c(3, 2), lty = c(4, 1), 
        inset = c(0.19, 0.06), cex = 0.75)
-cat("Size of home range with HREF (95 %): ", hr95$area, sep = "", "\n")
-cat("Size of core area with HREF (50 %): ", hr50$area, sep = "", "\n")
+cat("Size of home range with HREF (95 %): ", hr95_18$area, sep = "", "\n")
+cat("Size of core area with HREF (50 %): ", hr50_18$area, sep = "", "\n")
+
+# plot KDE for 2019 data
+graphics::image(ud_19, xlab = "x [m]", ylab = "y [m]",
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+xmin <- min(ud_19$ZH@coords[,1])
+xmax <- max(ud_19$ZH@coords[,1])
+ymin <- min(ud_19$ZH@coords[,2])
+ymax <- max(ud_19$ZH@coords[,2])
+plot(hr50_19, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr95_19, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+axis(1)
+axis(2, pos = xmin - 100)
+text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
+     adj = c(NA, -4), srt = 90)
+title("KDE with bandwidth selection method HREF", line = -0.3)
+legend("topright", c("HR 50%", "HR 95%"), 
+       col = c("black", "blue"), lwd = c(3, 2), lty = c(4, 1), 
+       inset = c(0.19, 0.06), cex = 0.75)
+cat("Size of home range with HREF (95 %): ", hr95_19$area, sep = "", "\n")
+cat("Size of core area with HREF (50 %): ", hr50_19$area, sep = "", "\n")
 
 # Now use the reference least-squares cross-validation nethod (h = "LSCV")
 # Positioning of legend box is optimized for knitr HTML output
-ud <- adehabitatHR::kernelUD(ung_pts_sp, grid = grid_val, extent = ext_val, h = "LSCV")
+ud <- adehabitatHR::kernelUD(bike_acc2018_point, grid = grid_val, extent = ext_val, h = "LSCV")
 hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
 hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
 
 graphics::image(ud, xlab = "x [m]", ylab = "y [m]", 
                 col = hcl.colors(200, palette = "heat 2", rev = TRUE))
-xmin <- min(ud@coords[,1])
-xmax <- max(ud@coords[,1])
-ymin <- min(ud@coords[,2])
-ymax <- max(ud@coords[,2])
+xmin <- min(ud$ZH@coords[,1])
+xmax <- max(ud$ZH@coords[,1])
+ymin <- min(ud$ZH@coords[,2])
+ymax <- max(ud$ZH@coords[,2])
 plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
 plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
 axis(1)
