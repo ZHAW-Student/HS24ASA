@@ -22,6 +22,7 @@ execute:
 library(dplyr)
 library(ggplot2)
 library(lubridate)
+library(sf)
 ```
 
 # First part: Spatial Clustering ####
@@ -306,16 +307,96 @@ ggplot() +
   coord_sf(datum = 2056)+
   theme_bw()
 
+```
+
+
+```{r, echo = FALSE, message = FALSE}
+#Jaquard Index etc.
+all18 <- st_union(db18_c_1_c, db18_c_2_c, db18_c_3_c, db18_c_4_c, db18_c_5_c, db18_c_6_c, db18_c_7_c, db18_c_8_c)
+
+all19 <- st_union(db19_c_1_c, db19_c_2_c, db19_c_3_c, db19_c_4_c, db19_c_5_c, db19_c_6_c, db19_c_7_c, db19_c_8_c, db19_c_9_c, db19_c_10_c, db19_c_11_c)
+
+all18_19_dif <- st_difference(all18, all19)
+
+plot(st_coordinates(all18), xlab = "Easting [m]", ylab = "Northing [m]", 
+     type = "n", asp = 1)
+plot(all18, border = "darkblue", lwd = 2, add = TRUE)
+plot(all18_19_dif, col = "green", border = NA, add = TRUE)
+plot(all19, col = "red", border = "red", add = TRUE)
+
+cat("Area of 2018:", sf::st_area(all18), "m^2 \n",
+    "Area of 2019: ", sf::st_area(all19), "m^2 \n",
+    "Difference Area: ", sf::st_area(all18_19_dif), "m^2 \n")
 
 ```
 
 
 * **Task 10**: Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
 
-Connecting those points to a road-network or data about the road- network would be helpful.
+Connecting those points to a road-network or data about the road- network would be helpful.This analysis helps finding the hot-spots (mostly city centre) but need lots of refinement to work properly.
 
 
 # Third part of DC1 ####
+* **Task 11:** Similarly to the clustering and polygon delineation tasks carried out in Parts 1 and 2 of DC1, respectively, start off by defining criteria for using KDE to detect areas/hotspots of elevated bicycle accident density, and explain your reasoning.
+
+We need to know, that the accidents are related to each other as well as to environment ( in this case informations about the road, visibility, traffic etc.) to apply KDE to it.
+If the accidents were not related to eachother applying KDE would be wrong. We also should think about the bandwidth we apply to the KDE and whether we want to use established rules, define one from literature or perform a iterative search, where we optimize based on validation.
+
+* **Task 12:** Choose any **two years** from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
+
+I choose the years 2018 and 2019 to be able to compare those results to the ones from part two. 
+
+```{r, echo = FALSE, message = FALSE}
+library(adehabitatHR)
+
+ext_val <- 0.3    # 0.3
+grid_val <- 300   # 300
+
+bikes18<- onlybikes |> 
+  filter(onlybikes$AccidentYear == 2018)
+bikes19<- onlybikes |> 
+  filter(onlybikes$AccidentYear == 2019)
+
+bikes18<-st_zm(bikes18[,22])
+bikes19<-st_zm(bikes19[,22])
+
+bikes18_sp <- as(bikes18, "Spatial")
+bikes19_sp <- as(bikes19, "Spatial")
+
+# First, use the reference bandwidth method for bandwith selection (h = "href")
+# Positioning of legend box is optimized for knitr HTML output
+
+# Compute UD (utilization distribution)
+ud <- adehabitatHR::kernelUD(bikes18_sp, grid = grid_val, extent = ext_val, h = "href")
+hr95 <- adehabitatHR::getverticeshr(ud, percent = 95)   # retrieve home range (95th volume percentile)
+hr50 <- adehabitatHR::getverticeshr(ud, percent = 50)   # retrieve core area (50th volume percentile)
+
+graphics::image(ud, xlab = "x [m]", ylab = "y [m]",
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+xmin <- min(ud$ZH@coords[,1])
+xmax <- max(ud$ZH@coords[,1])
+ymin <- min(ud$ZH@coords[,2])
+ymax <- max(ud$ZH@coords[,2])
+plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+axis(1)
+axis(2, pos = xmin - 100)
+text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
+     adj = c(NA, -4), srt = 90)
+title("KDE with bandwidth selection method HREF", line = -0.3)
+legend("topright", c("HR 50%", "HR 95%"), 
+       col = c("black", "blue"), lwd = c(3, 2), lty = c(4, 1), 
+       inset = c(0.19, 0.06), cex = 0.75)
+
+```
+
+
+
+* **Task 13:** Compute the "volume of intersection" ("VI") between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the `adehabitatHR` package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
+
+
+
+* **Task 14:** Discuss your results for this part of DC1 (density estimation). What did you find? Compare the results of this part with the clusters/polygons of Parts 1 and 2 (see note below): What are the commonalities? What are the differences? Which method(s) perform more adequately than others for the given problem and data? Which method(s) would you recommend, and which ones not? Why? (You are free to add more points to the discussion.)
 
 
 # Fourth part of DC1 ####
