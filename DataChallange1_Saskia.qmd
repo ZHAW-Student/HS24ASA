@@ -28,6 +28,8 @@ library(dbscan)
 library(fpc)
 library(concaveman)
 library(adehabitatHR)
+library(spatstat)
+library(spdep)
 
 ```
 
@@ -416,12 +418,12 @@ bike_accidents_2019_sf <- bike_accidents_sf |>
   filter(bike_accidents_sf$AccidentYear == 2019)
 
 # drop everything except geometry
-bike_accidents_2018_sf <- st_zm(bike_accidents_2018_sf[,22])
-bike_accidents_2019_sf <- st_zm(bike_accidents_2019_sf[,22])
+bike_accidents_2018_og <- st_zm(bike_accidents_2018_sf[,22])
+bike_accidents_2019_og <- st_zm(bike_accidents_2019_sf[,22])
 
 # convert to SpatialPointsDataFrame
-bike_acc2018_point <- as(bike_accidents_2018_sf, "Spatial")
-bike_acc2019_point <- as(bike_accidents_2019_sf, "Spatial")
+bike_acc2018_point <- as(bike_accidents_2018_og, "Spatial")
+bike_acc2019_point <- as(bike_accidents_2019_og, "Spatial")
 
 # First, use the reference bandwidth method for bandwith selection (h = "href")
 
@@ -510,16 +512,268 @@ cat("Size of core area with LSCV (50 %): ", hr50$area, sep = "", "\n")
 
 KOMMENTAR
 
-# Fourth part of DC1 ####
 
-# Fifth part of DC1 ####
+# Fourth part: Second Order Properties ####
+* **Task 15:** Choose one or more distance measure functions (justify your choice) and compute
+it/them for * a. all bicycle accidents (2011 - 2021) 
+I chose the L-function as it's based on the K-function but linear and thus easier to intrepret if there is correlation. 
+
+::: {.panel-tabset .nav-pills}
+
+## L-Function
+
+```{r, echo=FALSE}
+# Create a ppp object 
+bike_accidents_coords <- sf::st_coordinates(bike_accidents_sf)
+win <- as.owin(st_bbox(bike_accidents_sf))
+bike_accidents_ppp <- spatstat.geom::ppp(x = bike_accidents_coords[,1], y =  bike_accidents_coords[,2],
+                                         window = win, unitname = c("meter", "meters"))
+
+# Generate L-function with envelope() function.
+bike_accidents_enve <- spatstat.explore::envelope(bike_accidents_ppp, fun = Lest, nsim = 100, 
+                                         correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents_enve, main = "L-function of bike acccident points, with envelope")
+
+```
+## MAD & DCLF Test
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+
+```
+:::
+
+* b. bicycle accidents for one of the years selected in Task 6 
+
+::: {.panel-tabset .nav-pills}
+## L-Function 2018 data
+```{r, echo=FALSE}
+# Create a ppp object 
+bike_accidents2018_coords <- sf::st_coordinates(bike_accidents_2018_sf)
+win18 <- as.owin(st_bbox(bike_accidents_2018_sf))
+bike_accidents2018_ppp <- spatstat.geom::ppp(x = bike_accidents2018_coords[,1], y =  bike_accidents2018_coords[,2],
+                                         window = win18, unitname = c("meter", "meters"))
+
+# Generate L-function
+bike_accidents2018_enve <- spatstat.explore::envelope(bike_accidents2018_ppp, fun = Lest, nsim = 100, 
+                                         correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents2018_enve, main = "L-function of 2018 bike acccident points, with envelope")
+
+```
+
+## MAD & DCLF Test 2018 data
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+
+```
+
+## L-Function 2019 data
+```{r, echo=FALSE}
+# Create a ppp object 
+bike_accidents2019_coords <- sf::st_coordinates(bike_accidents_2019_sf)
+win19 <- as.owin(st_bbox(bike_accidents_2019_sf))
+bike_accidents2019_ppp <- spatstat.geom::ppp(x = bike_accidents2019_coords[,1], y =  bike_accidents2019_coords[,2],
+                                         window = win19, unitname = c("meter", "meters"))
+
+# Generate L-function
+bike_accidents2019_enve <- spatstat.explore::envelope(bike_accidents2019_ppp, fun = Lest, nsim = 100, 
+                                         correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents2019_enve, main = "L-function of 2019 bike acccident points, with envelope")
+```
+
+## MAD & DCLF Test 2019 data
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+```
+
+::: 
+
+* c. bicycle accidents for only the cluster points of the year selected in (b)
+Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
+
+```{r}
+
+
+```
+
+
+
+* **Task 16:** Now choose the following two pairs of years, 2018 & 2019, as well as 2018 & 2021, and compute the cross-X function, where “X” stands for the function(s) you used in Task 15. Use the AccidentYear as the marks to produce a marked point pattern.
+
+::: {.panel-tabset .nav-pills}
+
+## marked point pattern
+```{r, echo=FALSE}
+# reate a marked ppp object
+marks_bike_accidents_ppp <- spatstat.geom::setmarks(bike_accidents_ppp, factor(bike_accidents_sf$AccidentYear))
+
+bike_accidents181921 <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear %in% c("2018", "2019", "2021"))
+
+# Summary will show frequency table per Year
+summary(bike_accidents181921)
+
+ggplot() +
+  geom_sf(data = bike_accidents181921, aes(colour = AccidentYear))  +
+  coord_sf(datum = 2056) +
+  ggtitle("Marked point pattern of bike accidents 2018, 2019 and 2021") +
+  xlab("Easting [m]") + 
+  ylab("Northing [m]") +
+  theme(plot.title = element_text(face="bold"))
+```
+
+## Cross-L function 2018 and 2019
+```{r, echo=FALSE}
+acc_2018_2019_clf_env <- spatstat.explore::envelope(marks_bike_accidents_ppp, fun = Lcross, 
+                                                    i = "2018", j = "2019", nsim = 100, 
+                                                    correction = "Ripley", verbose = FALSE)
+
+# Plot it
+plot(acc_2018_2019_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 2019")
+```
+
+## Cross-L function 2018 and 2021
+```{r, echo=FALSE}
+#create ppp for 2021 data
+bike_accidents_2021_sf <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear == 2021)
+
+# drop everything except geometry
+bike_accidents_2021_sf <- st_zm(bike_accidents_2021_sf[,22])
+
+bike_accidents2021_coords <- sf::st_coordinates(bike_accidents_2021_sf)
+win21 <- as.owin(st_bbox(bike_accidents_2021_sf))
+bike_accidents2021_ppp <- spatstat.geom::ppp(x = bike_accidents2021_coords[,1], y =  bike_accidents2021_coords[,2],
+                                         window = win21, unitname = c("meter", "meters"))
+
+
+acc_2018_2021_clf_env <- spatstat.explore::envelope(marks_bike_accidents_ppp, fun = Lcross, 
+                                                    i = "2018", j = "2021", nsim = 100, 
+                                                    correction = "Ripley", verbose = FALSE)
+
+# Plot it
+plot(acc_2018_2021_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 2021")
+```
+:::
+
+* **Task 17:** Discuss your results. Similarities and differences between the various point sets? Noteworthy spatial and/or temporal patterns? Is any difference observable in the patterns of the cross-X function in the transition to the Covid-19 pandemic? etc. etc. Note: Consider in your interpretation that the distance scale may change between years.
+
+KOMMENTAR
+
+
+* **Task 18:** From the bicycle accidents data, choose at least two relevant variables that make sense being compared, e.g. two different accident types, severity levels, times of day, years etc. For these selected accidents, compute the counts within the ‘statistical zones’ of Zurich and use these counts to compute the Getis-Ord G*-statistic for each of your counts layers. Visualize your results appropriately.
+
+```{r}
+# read data of statistical zones
+zh_stat_zone <- sf::st_read("zh_stat_zones.gpkg")
+
+# Find nearest neighbors within 500m
+# You should play with nn.dis and see what it does to connectivity.
+nn_dis <- 2000
+
+# create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
+bike_acc_nb <- spdep::dnearneigh(bike_accidents_sf, 0, nn_dis)
+
+# convert into list with spatial weights, B = binary weight
+bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
+
+# Create the line links from the nb object, requesting an sf object to be returned.
+# CRS needs to be set as it was carried over to the nb object.
+bike_acc_links <- 
+  spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(bike_accidents_sf), as_sf = TRUE) |>
+  sf::st_set_crs(2056)
+
+# Plot the neighbor links using functions from the tmap package
+tmap::tm_shape(zh_stat_zone) + 
+  tmap::tm_borders(col = "gray") +
+  tmap::tm_shape(bike_acc_links) + 
+  tmap::tm_lines(col = "red", lwd = 0.5) +
+  tmap::tm_shape(bike_accidents_sf) +
+  tmap::tm_dots(col = "black", size = 0.1) +
+  tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2) +
+  tmap::tm_layout(
+    title = paste("Neighbor links within ",
+                  nn_dis / 1000, " km", sep = ""),
+    title.position = c("left", "top"),
+    title.size = 1.1,
+    title.fontface = "bold",
+    frame = FALSE,
+    inner.margins = c(0.05, 0.05, 0.05, 0.05)
+  )
+```
+
+```{r}
+#| label: g-stat-compute
+
+# Initialize variable names for variants in sads_comp 
+# --> we use the proportions per variant
+var_string <- c("prop_v1_als", "prop_v2_weder", "prop_v3_wie", "prop_v4_wan")
+variant <- c("als", "weder", "wie", "wan")
+
+# For each variant, compute local Gi*-statistic with spdep::localG() and 
+# display as choropleth map.
+
+# Define a function that, for a given variant, computes the local Gi*-statistic 
+# with spdep::localG() and displays it as a choropleth map.
+plot_variant <- function(i, j) {
+
+    # Create local Gi* stats object
+  sads_lG <-
+    spdep::localG(x = as.numeric(unlist(bike_accidents_sf[, i])), listw = bike_acc_lw)
+  
+  # attach Gi* statistic values to the sfc_POINT object
+  s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
+  tmp_sf <- bind_cols(bike_accidents_sf, as.data.frame(s_lG))
+  
+  # generate map with dot symbols shaded according to Gi*-stats value
+  m <- tmap::tm_shape(zh_stat_zone) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Variant \"", variant[j], "\"", sep = "")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for comparative clause",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+  
+  # a tmap inside a loop needs to be *printed* explicitly; otherwise it won't show
+  # print(m)
+  
+  return(m)
+}
+```
+
+
+* **Task 19:** Discuss your results. What did you find regarding the hot and cold spots in your accident count layers? How do they compare to each other across layers and across (past) methods? etc. Discuss also the influence of the parameter settings (e.g., neighbor search distance, spatial weight formation) on your results.
+
+KOMMENTAR
 
 # Time spend on DC1 and lab partner ####
 * Part 1: 2.5h
 * Part 2: 2.5h
 * Part 3:
 * Part 4:
-* Part 5:
 Lab partner: 
 
 
