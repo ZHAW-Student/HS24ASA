@@ -687,81 +687,33 @@ bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
 
 # Create the line links from the nb object, requesting an sf object to be returned.
 # CRS needs to be set as it was carried over to the nb object.
-bike_acc_links <- 
-  spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(bike_accidents_sf), as_sf = TRUE) |>
-  sf::st_set_crs(2056)
-
-# Plot the neighbor links using functions from the tmap package
-tmap::tm_shape(zh_stat_zone) + 
-  tmap::tm_borders(col = "gray") +
-  tmap::tm_shape(bike_acc_links) + 
-  tmap::tm_lines(col = "red", lwd = 0.5) +
-  tmap::tm_shape(bike_accidents_sf) +
-  tmap::tm_dots(col = "black", size = 0.1) +
-  tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2) +
-  tmap::tm_layout(
-    title = paste("Neighbor links within ",
-                  nn_dis / 1000, " km", sep = ""),
-    title.position = c("left", "top"),
-    title.size = 1.1,
-    title.fontface = "bold",
-    frame = FALSE,
-    inner.margins = c(0.05, 0.05, 0.05, 0.05)
-  )
+# bike_acc_links <- 
+#   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(bike_accidents_sf), as_sf = TRUE) |>
+#   sf::st_set_crs(2056)
+# 
+# # Plot the neighbor links using functions from the tmap package
+# tmap::tm_shape(zh_stat_zone) + 
+#   tmap::tm_borders(col = "gray") +
+#   tmap::tm_shape(bike_acc_links) + 
+#   tmap::tm_lines(col = "red", lwd = 0.5) +
+#   tmap::tm_shape(bike_accidents_sf) +
+#   tmap::tm_dots(col = "black", size = 0.1) +
+#   tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2) +
+#   tmap::tm_layout(
+#     title = paste("Neighbor links within ",
+#                   nn_dis / 1000, " km", sep = ""),
+#     title.position = c("left", "top"),
+#     title.size = 1.1,
+#     title.fontface = "bold",
+#     frame = FALSE,
+#     inner.margins = c(0.05, 0.05, 0.05, 0.05)
+#  )
 ```
 
 ```{r}
 #| label: g-stat-compute
 
-# Initialize variable names for variants in sads_comp 
-# --> we use the proportions per variant
-var_string <- c("prop_v1_als", "prop_v2_weder", "prop_v3_wie", "prop_v4_wan")
-variant <- c("als", "weder", "wie", "wan")
 
-# For each variant, compute local Gi*-statistic with spdep::localG() and 
-# display as choropleth map.
-
-# Define a function that, for a given variant, computes the local Gi*-statistic 
-# with spdep::localG() and displays it as a choropleth map.
-plot_variant <- function(i, j) {
-
-    # Create local Gi* stats object
-  sads_lG <-
-    spdep::localG(x = as.numeric(unlist(bike_accidents_sf[, i])), listw = bike_acc_lw)
-  
-  # attach Gi* statistic values to the sfc_POINT object
-  s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
-  tmp_sf <- bind_cols(bike_accidents_sf, as.data.frame(s_lG))
-  
-  # generate map with dot symbols shaded according to Gi*-stats value
-  m <- tmap::tm_shape(zh_stat_zone) +
-    tmap::tm_borders(col = "gray") +
-    tmap::tm_shape(tmp_sf) +
-    tmap::tm_dots(
-      size = 0.2,
-      col = "s_lG",
-      n = 6,
-      midpoint = 0,
-      palette = "-RdYlBu",
-      title.size = 0.2,
-      title = paste("Variant \"", variant[j], "\"", sep = "")
-    ) +
-    tmap::tm_layout(
-      main.title = "Gi*-statistic for comparative clause",
-      main.title.size = 1.0,
-      main.title.fontface = "bold",
-      main.title.position = c("left", "top"),
-      legend.position = c("left", "top"),
-      frame = FALSE,
-      inner.margins = c(0.05, 0.05, 0.05, 0.05)
-    ) +
-    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-  
-  # a tmap inside a loop needs to be *printed* explicitly; otherwise it won't show
-  # print(m)
-  
-  return(m)
-}
 ```
 
 
@@ -772,7 +724,7 @@ KOMMENTAR
 # Time spend on DC1 and lab partner ####
 * Part 1: 2.5h
 * Part 2: 2.5h
-* Part 3:
+* Part 3: 2.5h
 * Part 4:
 Lab partner: 
 
