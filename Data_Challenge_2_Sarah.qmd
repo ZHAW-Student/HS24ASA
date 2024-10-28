@@ -1,0 +1,79 @@
+---
+title: "Data Challange 2"
+author: "Sarah Wirth"
+date: "October/November/December 2024"
+format: 
+  html:
+    embed-resources: true
+    fig_caption: true
+    fig-align: center
+    highlight: tango
+    number-sections: false
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: true
+execute:                      # Set global options for execution of code blocks
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r, echo=FALSE}
+library(sf)
+library(rnaturalearth)
+library(igraph)
+library(tidygraph)
+library(tidyverse)
+library(sfnetworks)
+library(spdep)
+library(reshape2)
+```
+
+# First part: Spatial Clustering ####
+* **Task 1:** Describe the bicycle network. In particular, discuss properties that emerged in this week’s session, such as:
+
+– What are the attributes of the nodes and edges?
+nodes:geometry
+edges: from    to osm_id    name      bridge tunnel highway                   geometry
+
+
+– How many nodes and edges are present in the network?
+24191 nodes and 29694 edges
+
+– Do the edges have geometries themselves, or are they merely relations between nodes that possess geometries?
+they do have geometries, there are point as well as linestring geometries present in this file
+
+
+– Is the network connected? (Largely) planar? Weighted? Does it contain self-loops?
+
+It technically contains loops, but those were broken down into separate lines (see documentation for creating the network). It is largely planar except for some bridges and tunnels. It is also not weighted
+An undirected simple graph with 1 component with spatially explicit edges
+
+
+```{r, results='hide'}
+
+biking_network <- readRDS("Session_6/biking_network.rds")
+
+ggplot() +
+  geom_sf(data=biking_network %>% activate(edges) %>% st_as_sf(), aes(color=highway), size=2) + 
+  geom_sf(data=biking_network %>% activate(nodes) %>% st_as_sf())
+
+biking_network
+
+summary(biking_network)
+```
+
+
+* **Task 2:** Create a regular grid (hexagonal or rectangular, your choice) that covers the same area as the bike network. Your grid should have a suitable resolution. As a guideline, when overlaid on the bike network, your grid should be large enough to group nodes belonging to the same intersection together, while being small enough to separate the various districts (Quartiere). You can derive a suitable resolution from the bike network data, such as by using k-nearest-neighbour distances between intersections, or you can provide a rationale for your choice. In either case, please explain your reasoning. Finally, convert your grid into a valid spatial network using an appropriate definition of spatial neighbourhood.
+
+
+```{r, results='hide'}
+biking_network |>
+  activate("edges") |>
+  st_bbox()
+#  xmin    ymin    xmax    ymax 
+#2675307 1241182 2690295 1254844 
+
+```
+
