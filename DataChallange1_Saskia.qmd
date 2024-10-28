@@ -405,16 +405,19 @@ poly2019 <- st_union(bike_acc2019_c1_con,
 
 ## compute difference
 poly2018_2019_diff <- st_difference(poly2018, poly2019)
+poly2019_2018_diff <- st_difference(poly2019, poly2018)
+poly_18_19diff <- st_union(poly2018_2019_diff, poly2019_2018_diff)
 
 plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
-plot(poly2018, border = "darkblue", lwd = 2, add = TRUE)
-plot(poly2018_2019_diff, col = "lightblue", border = NA, add = TRUE)
-plot(poly2019, col = "pink", border = "purple", add = TRUE)
+plot(poly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
+plot(poly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
+plot(poly_18_19diff, border = "purple", add = TRUE)
 
 cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
-    "Difference Area:    ", sf::st_area(poly2018_2019_diff), "m^2 \n")
+    "Difference Area:    ", sf::st_area(poly_18_19diff), "m^2 \n")
+
 ```
 * **Task 10**: Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
 
