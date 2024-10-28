@@ -30,7 +30,6 @@ library(concaveman)
 library(adehabitatHR)
 library(spatstat)
 library(spdep)
-
 ```
 
 # First part: Spatial Clustering ####
@@ -104,33 +103,53 @@ acc_ped_bike_moto
 * **Task 3:** Generate a plot showing the temporal evolution of the number of accidents from 2011 to 2023. Label each year with the corresponding number of accidents. Choose a plot type that is suitable for this type of temporal data. Bonus: Show also the data for the bicycle accidents (cf. Task 4) in the same plot.
 
 ```{r, echo=FALSE}
-ggplot(data = accidents, aes(x = AccidentYear)) + 
-  geom_bar(fill = "lightblue") +
-  geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
+numyearbi <- accidents |> group_by(AccidentYear, AccidentInvolvingBicycle) |>
+  summarise(n=n())
+numyear <- numyearbi |> group_by(AccidentYear)  |> 
+  summarise(n=n())
+  
+
+ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle, label=n)) +
+  geom_bar(position="stack", stat="identity")+
+  geom_text(size = 3, position = position_stack(vjust = 0.5)) +
   ylab("Number of accidents") +
   xlab("Year") +
-  ggtitle("Total Accidents")
+  ggtitle("Total Accidents")+
+  xlab("Year")+
+  ylab("Number of accidents")+
+  theme_bw()+
+  guides(fill=guide_legend(title="Accident involves bicycles"))
 
-
-bike_accidents <- accidents |> 
-  filter(AccidentInvolvingBicycle == "true")
-
-ggplot(data = bike_accidents, aes(x = AccidentYear)) + 
-  geom_bar(fill = "pink") +
-  geom_text(stat='count', aes(label=..count..), vjust=-1, size = 3) +
-  ylab("Number of accidents") +
-  xlab("Year") +
-  ggtitle("Accidents involving bicycles")
 ```
 
 * **Task 4:** Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
 
 ```{r, echo=FALSE}
+bike_accidents <- accidents |> 
+  filter(AccidentInvolvingBicycle == "true")
+
+#Version normal
 ggplot() +
   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
   geom_sf(data = districts, color = "black", fill = NA) +
-  theme(legend.position = "bottom") +
-  scale_color_manual(values = c("red",  "yellow","orange", "blue"),
+  coord_sf(datum = NA)+
+  theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
+  theme_minimal()+
+  scale_color_manual(values = c("red",  "gold","orange2", "blue"),
+                               name = "Accident Severity",
+                               breaks = c("as1", "as2", "as3", "as4"),
+                               labels = c("fatalities", 
+                                          "light injuries", 
+                                          "severe injuries",
+                                          "property damage"))
+#Version mit alpha
+ggplot() +
+  geom_sf(data = bike_accidents, mapping = aes(color =AccidentSeverityCategory)) +
+  geom_sf(data = districts, color = "black", fill = NA, ) +
+  coord_sf(datum = NA)+
+  theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
+  theme_minimal()+
+  scale_color_manual(values = c(alpha("red",alpha = 1.0),  alpha("gold",alpha = 0.8),alpha("orange2",alpha = 0.8), alpha("blue",alpha = 0.8)),
                                name = "Accident Severity",
                                breaks = c("as1", "as2", "as3", "as4"),
                                labels = c("fatalities", 
@@ -189,7 +208,7 @@ plot(bike_accidents2021, pch = 19, cex = 0.5, col = db2021$cluster + 1, asp = 1,
 ```
 
 
-First I performed a DBSCAN cluster analysis. But 500 m seem a lot for the distance. Also, the density varies, which is a weakness of DBSCAN. Therefor, I tried using optics.
+First I performed a DBSCAN cluster analysis. But 500 m seem a lot for the distance. Also, the density varies, which is a weakness of DBSCAN. Therefore, I tried using optics.
 
 ```{r, echo=FALSE}
 ops_reach2018 <- optics(bike_accidents2018)
@@ -285,11 +304,14 @@ cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold
 
 
 ggplot() +
+  geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data=bike_acc2018_c1, size = 0.5) +
-  geom_sf(data = cave_acc2018_05, color = "pink", fill = NA) +
-  geom_sf(data = cave_acc2018_1, color = "green", fill = NA) +
-  geom_sf(data = cave_acc2018_2, color = "blue", fill = NA) + 
-  ggtitle("find best concavity value")
+  geom_sf(data = cave_acc2018_2, color = "cyan", fill = alpha("cyan", alpha=0.2)) +
+  geom_sf(data = cave_acc2018_1, color = "magenta", fill = alpha("magenta", alpha=0.2)) +
+  geom_sf(data = cave_acc2018_05, color = "yellow", fill = alpha("yellow", alpha=0.2)) +
+  coord_sf(datum = NA)+
+  ggtitle("find best concavity value")+
+  theme_minimal()
 
 # 1 seems best value for concavity
 bike_acc2018_c1_con <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
@@ -313,47 +335,51 @@ bike_acc2019_c9_con <- concaveman(bike_acc2019_c9, concavity = 1, length_thresho
 bike_acc2019_c10_con <- concaveman(bike_acc2019_c10, concavity = 1, length_threshold = 0)
 
 ggplot() +
+  geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data = bike_acc2018_c1, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c1_con, color = "pink", fill = NA) + 
+  geom_sf(data = bike_acc2018_c1_con, color = "pink", fill = alpha("pink", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c2, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c2_con, color = "purple", fill = NA) + 
+  geom_sf(data = bike_acc2018_c2_con, color = "purple", fill = alpha("purple", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c3, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c3_con, color = "green", fill = NA) + 
+  geom_sf(data = bike_acc2018_c3_con, color = "seagreen", fill = alpha("seagreen", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c4_con, color = "darkgreen", fill = NA) + 
+  geom_sf(data = bike_acc2018_c4_con, color = "chartreuse", fill = alpha("chartreuse", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c5, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = NA) + 
+  geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = alpha("blue", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c6, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c6_con, color = "lightblue", fill = NA) + 
+  geom_sf(data = bike_acc2018_c6_con, color = "lightblue", fill = alpha("lightblue", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c7, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c7_con, color = "orange", fill = NA) + 
+  geom_sf(data = bike_acc2018_c7_con, color = "orange", fill = alpha("orange", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c8, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c8_con, color = "red", fill = NA) +
+  geom_sf(data = bike_acc2018_c8_con, color = "red", fill = alpha("red", alpha=0.3)) +
   theme_minimal() +
+  coord_sf(datum = NA)+
   ggtitle("Clusters of bike accidents 2018")
 
 ggplot() +
+  geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data = bike_acc2019_c1, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c1_con, color = "pink", fill = NA) + 
+  geom_sf(data = bike_acc2019_c1_con, color = "pink", fill = alpha("pink", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c2, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c2_con, color = "purple", fill = NA) + 
+  geom_sf(data = bike_acc2019_c2_con, color = "purple", fill = alpha("purple", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c3, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c3_con, color = "green", fill = NA) + 
+  geom_sf(data = bike_acc2019_c3_con, color = "seagreen",  fill = alpha("seagreen", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c4, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c4_con, color = "darkgreen", fill = NA) + 
+  geom_sf(data = bike_acc2019_c4_con, color = "chartreuse",fill = alpha("chartreuse", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c5, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c5_con, color = "blue", fill = NA) + 
+  geom_sf(data = bike_acc2019_c5_con, color = "blue", fill = alpha("blue", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c6, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c6_con, color = "lightblue", fill = NA) + 
+  geom_sf(data = bike_acc2019_c6_con, color = "lightblue",  fill = alpha("lightblue", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c7, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = NA) + 
+  geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = alpha("orange", alpha=0.3))  + 
   geom_sf(data = bike_acc2019_c8, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c8_con, color = "red", fill = NA) +
+  geom_sf(data = bike_acc2019_c8_con, color = "red",  fill = alpha("red", alpha=0.3)) +
   geom_sf(data = bike_acc2019_c9, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c9_con, color = "yellow", fill = NA) + 
+  geom_sf(data = bike_acc2019_c9_con, color = "gold",  fill = alpha("gold", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c10, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c10_con, color = "brown", fill = NA) +
+  geom_sf(data = bike_acc2019_c10_con, color = "magenta",  fill = alpha("magenta", alpha=0.3))+
   theme_minimal() +
+  coord_sf(datum = NA)+
   ggtitle("Clusters of bike accidents 2019")
 
 # Compute the Jaccard Index
