@@ -1,0 +1,208 @@
+---
+title: "Data Challenge 1"
+author: "Saskia Gianola / Sarah Wirth"
+date: "October/November 2024"
+format: 
+  html:
+    embed-resources: true
+    fig_caption: true
+    fig-align: center
+    highlight: tango
+    number-sections: false
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: true
+execute:                      # Set global options for execution of code blocks
+  echo: false
+  warning: false
+  message: false
+---
+# Introduction
+This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. For this work no language models like ChatGPT have been used.
+
+## Packages
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(sf)
+library(cluster)
+library(dbscan)
+library(fpc)
+library(concaveman)
+library(adehabitatHR)
+library(spatstat)
+library(spdep)
+
+```
+
+# First part: Spatial Clustering
+## Task 1
+Download and import the road accident data from Open Data Zurich (ODZ) using an appropriate file format. If needed, transform to the Swiss projected CH1903+/LV95 coordinate system (EPSG = 2056).
+
+```{r, echo=TRUE, , results='hide'}
+accidents <- st_read("Session2/roadtrafficaccidentlocations.gpkg")
+boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
+districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
+```
+As all three layers are already in the Swiss projected CH1903+/LV95, there is no need for transformation. 
+
+## Task 2
+Report the following numbers in table(s):
+  
+```{r}
+accidents_no_geom <- st_drop_geometry(accidents) # drop geometry to make code more efficient
+
+acc_sever <- accidents_no_geom |> 
+   count(AccidentSeverityCategory)
+
+acc_type <- accidents_no_geom |> 
+  count(AccidentType)
+
+acc_ped <- accidents_no_geom |> 
+  count(AccidentInvolvingPedestrian)
+
+acc_bike <- accidents_no_geom |> 
+  count(AccidentInvolvingBicycle)
+
+acc_moto <- accidents_no_geom |> 
+  count(AccidentInvolvingMotorcycle)
+
+acc_ped_moto <- accidents_no_geom |> 
+  count(AccidentInvolvingPedestrian, AccidentInvolvingMotorcycle)
+
+acc_ped_bike <- accidents_no_geom |> 
+  count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle)
+
+acc_moto_bike <- accidents_no_geom |> 
+  count(AccidentInvolvingMotorcycle, AccidentInvolvingBicycle)
+
+acc_ped_bike_moto <- accidents_no_geom |> 
+  count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle, AccidentInvolvingMotorcycle)
+  
+```
+* a. Number of accidents by accident severity category
+  
+```{r}
+acc_sever
+```
+  
+* b. Number of accidents by accident type
+  
+```{r}
+acc_type
+```
+
+  
+* c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)?
+  
+```{r}
+acc_ped
+acc_bike
+acc_moto
+acc_ped_bike
+acc_ped_moto
+acc_moto_bike
+acc_ped_bike_moto
+```
+
+## Task 3
+Generate a plot showing the temporal evolution of the number of accidents from 2011 to 2023. Label each year with the corresponding number of accidents. Choose a plot type that is suitable for this type of temporal data. Bonus: Show also the data for the bicycle accidents (cf. Task 4) in the same plot.
+
+## Task 4
+Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
+
+## Task 5 
+Imagine you are given the task of detecting spatial clusters of elevated bicycle accident occurrence (without considering their severity). How would you characterize such "bicycle accident clusters"? Try to define properties that can be used to describe and identify such clusters, and that can be used to choose and parameterize a clustering method suitable for the task. Try to use natural, but precise and concise language in your answer.
+
+KOMMENTAR
+
+
+## Task 6
+From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
+
+## Task 7
+Discuss your results, including also limitations or problems, and possible other methods that you could have used.
+
+KOMMENTAR 
+
+# Second part: Polygon Delineation
+## Task 8
+Given the clusters that you have extracted in Part 1 of the DC1 assignment:
+
+* a. Define a set of criteria that a method should fulfill that can be used to delineate the given clusters by polygons. Use free text for these definitions, but try to be concise and precise. (Note: These criteria can also be used in the subsequent Discussion to evaluate whether they have been met.)
+
+KOMMENTAR
+
+* b. Choose a polygon delineation method that you deem appropriate in light of the above
+criteria. Justify your choice.
+
+KOMMENTAR
+
+## Task 9
+From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
+
+KOMMENTAR
+
+## Task 10
+Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
+
+KOMMENTAR
+
+# Third part: Density estimation
+## Task 11
+Similarly to the clustering and polygon delineation tasks carried out in Parts 1 and 2 of DC1, respectively, start off by defining criteria for using KDE to detect areas/hotspots of elevated bicycle accident density, and explain your reasoning.
+
+KOMMENTAR
+
+## Task 12
+Choose any two years from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
+
+KOMMENTAR 
+
+## Task 13
+Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
+
+KOMMENTAR
+
+## Task 14
+Discuss your results for this part of DC1 (density estimation). What did you find? Compare the results of this part with the clusters/polygons of Parts 1 and 2 (see note below): What are the commonalities? What are the differences? Which method(s) perform more adequately than others for the given problem and data? Which method(s) would you recommend, and which ones not? Why? (You are free to add more points to the discussion.)
+
+KOMMENTAR
+
+# Fourth part: Second Order Properties
+## Task 15
+Choose one or more distance measure functions (justify your choice) and compute it/them for
+
+KOMMENTAR
+
+* a. all bicycle accidents (2011 - 2021) 
+
+* b. bicycle accidents for one of the years selected in Task 6 
+
+* c. bicycle accidents for only the cluster points of the year selected in (b)
+
+Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
+
+KOMMENTAR
+
+## Task 16
+Now choose the following two pairs of years, 2018 & 2019, as well as 2018 & 2021, and compute the cross-X function, where “X” stands for the function(s) you used in Task 15. Use the AccidentYear as the marks to produce a marked point pattern.
+
+
+## Task 17
+Discuss your results. Similarities and differences between the various point sets? Noteworthy spatial and/or temporal patterns? Is any difference observable in the patterns of the cross-X function in the transition to the Covid-19 pandemic? etc. etc. Note: Consider in your interpretation that the distance scale may change between years.
+
+KOMMENTAR 
+
+## Task 18
+From the bicycle accidents data, choose at least two relevant variables that make sense being compared, e.g. two different accident types, severity levels, times of day, years etc. For these selected accidents, compute the counts within the ‘statistical zones’ of Zurich and use these counts to compute the Getis-Ord G*-statistic for each of your counts layers. Visualize your results appropriately.
+
+
+## Task 19
+Discuss your results. What did you find regarding the hot and cold spots in your accident count layers? How do they compare to each other across layers and across (past) methods? etc. Discuss also the influence of the parameter settings (e.g., neighbor search distance, spatial weight formation) on your results.
+
+KOMMENTAR
+
+
