@@ -153,37 +153,36 @@ ggplot() +
                                           "light injuries",
                                           "property damage"))
 #Version mit alpha
-ggplot() +
-  geom_sf(data = bike_accidents, mapping = aes(color =AccidentSeverityCategory)) +
-  geom_sf(data = districts, color = "black", fill = NA, ) +
-  coord_sf(datum = NA)+
-  theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
-  theme_minimal()+
-  scale_color_manual(values = c(alpha("red",alpha = 1.0), alpha("orange2",alpha = 0.8), alpha("gold",alpha = 0.8), alpha("blue",alpha = 0.8)),
-                               name = "Accident Severity",
-                               breaks = c("as1",  "as3","as2", "as4"),
-                               labels = c("fatalities", 
-                                          "severe injuries",
-                                          "light injuries",
-                                          "property damage"))
-
-#Version mit small multiples
-ggplot() +
-  geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
-  geom_sf(data = districts, color = "black", fill = NA) +
-  facet_wrap(~AccidentSeverityCategory)+
-  coord_sf(datum = NA)+
-  theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
-  theme_minimal()+
-  theme(strip.text = element_blank())+
-  scale_color_manual(values = c("red","orange2",  "gold", "blue"),
-                               name = "Accident Severity",
-                               breaks = c("as1",  "as3","as2", "as4"),
-                               labels = c("fatalities", 
-                                          "severe injuries",
-                                          "light injuries",
-                                          "property damage"))
-
+# ggplot() +
+#   geom_sf(data = bike_accidents, mapping = aes(color =AccidentSeverityCategory)) +
+#   geom_sf(data = districts, color = "black", fill = NA, ) +
+#   coord_sf(datum = NA)+
+#   theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
+#   theme_minimal()+
+#   scale_color_manual(values = c(alpha("red",alpha = 1.0), alpha("orange2",alpha = 0.8), alpha("gold",alpha = 0.8), alpha("blue",alpha = 0.8)),
+#                                name = "Accident Severity",
+#                                breaks = c("as1",  "as3","as2", "as4"),
+#                                labels = c("fatalities", 
+#                                           "severe injuries",
+#                                           "light injuries",
+#                                           "property damage"))
+# 
+# #Version mit small multiples
+# ggplot() +
+#   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
+#   geom_sf(data = districts, color = "black", fill = NA) +
+#   facet_wrap(~AccidentSeverityCategory)+
+#   coord_sf(datum = NA)+
+#   theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
+#   theme_minimal()+
+#   theme(strip.text = element_blank())+
+#   scale_color_manual(values = c("red","orange2",  "gold", "blue"),
+#                                name = "Accident Severity",
+#                                breaks = c("as1",  "as3","as2", "as4"),
+#                                labels = c("fatalities", 
+#                                           "severe injuries",
+#                                           "light injuries",
+#                                           "property damage"))
 ```
 # bike accidents with fatalities
 ```{r}
@@ -368,8 +367,10 @@ bike_acc2019_c7 <- bike_acc2019_clus |>
 cave_acc2018_2 <- concaveman(bike_acc2018_c1, concavity = 2, length_threshold = 0)
 cave_acc2018_1 <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
 cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0)
-
-
+```
+::: {.panel-tabset .nav-pills}
+# find best concavity value
+```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data=bike_acc2018_c1, size = 0.5) +
@@ -400,7 +401,10 @@ bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_thresho
 # bike_acc2019_c8_con <- concaveman(bike_acc2019_c8, concavity = 1, length_threshold = 0)
 # bike_acc2019_c9_con <- concaveman(bike_acc2019_c9, concavity = 1, length_threshold = 0)
 # bike_acc2019_c10_con <- concaveman(bike_acc2019_c10, concavity = 1, length_threshold = 0)
+```
 
+# Clusters of bike accidents 2018
+```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data = bike_acc2018_c1, color = "black", size = 0.5) +
@@ -420,9 +424,11 @@ ggplot() +
   # geom_sf(data = bike_acc2018_c8, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2018_c8_con, color = "red", fill = alpha("red", alpha=0.3)) +
   theme_minimal() +
-  coord_sf(datum = NA)+
-  ggtitle("Clusters of bike accidents 2018")
+  coord_sf(datum = NA)
+```
 
+# Clusters of bike accidents 2019
+```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data = bike_acc2019_c1, color = "black", size = 0.5) +
@@ -446,9 +452,11 @@ ggplot() +
   # geom_sf(data = bike_acc2019_c10, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2019_c10_con, color = "magenta",  fill = alpha("magenta", alpha=0.3))+
   theme_minimal() +
-  coord_sf(datum = NA)+
-  ggtitle("Clusters of bike accidents 2019")
+  coord_sf(datum = NA)
+```
 
+# Jaccard Index
+```{r}
 # Compute the Jaccard Index
 ## unify single polygones from 2018 and 2019
 poly2018 <- st_union(bike_acc2018_c1_con, 
@@ -486,8 +494,8 @@ plot(poly_18_19diff, border = "purple", add = TRUE)
 cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
     "Difference Area:    ", sf::st_area(poly_18_19diff), "m^2 \n")
-
 ```
+:::
 
 KOMMENTAR
 
@@ -592,6 +600,11 @@ plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
 
 ## Task 13
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
+
+```{r}
+
+```
+
 
 KOMMENTAR
 
