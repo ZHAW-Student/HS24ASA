@@ -218,8 +218,6 @@ abline(h = 415, col = "red")
 db2021 <- dbscan(bike_accidents2021, eps = 500, MinPts = 3)
 str(db2021)
 plot(bike_accidents2021, pch = 19, cex = 0.5, col = db2021$cluster + 1, asp = 1, main = "Bike accidents 2021")
-
-
 ```
 
 
