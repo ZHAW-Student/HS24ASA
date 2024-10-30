@@ -47,10 +47,10 @@ districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
 accidents_no_geom <- st_drop_geometry(accidents) # drop geometry to make code more efficient
 
 acc_sever <- accidents_no_geom |> 
-   count(AccidentSeverityCategory)
+   count(AccidentSeverityCategory_en)
 
 acc_type <- accidents_no_geom |> 
-  count(AccidentType)
+  count(AccidentType_en)
 
 acc_ped <- accidents_no_geom |> 
   count(AccidentInvolvingPedestrian)
@@ -112,11 +112,8 @@ numyear <- numyearbi |> group_by(AccidentYear)  |>
 ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle, label=n)) +
   geom_bar(position="stack", stat="identity")+
   geom_text(size = 3, position = position_stack(vjust = 0.5)) +
-  ylab("Number of accidents") +
+  ylab("Total number of accidents") +
   xlab("Year") +
-  ggtitle("Total Accidents")+
-  xlab("Year")+
-  ylab("Number of accidents")+
   theme_bw()+
   guides(fill=guide_legend(title="Accident involves bicycles"))
 
@@ -128,6 +125,7 @@ ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle, label=n
 bike_accidents <- accidents |> 
   filter(AccidentInvolvingBicycle == "true")
 
+
 #Version normal
 ggplot() +
   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
@@ -135,12 +133,12 @@ ggplot() +
   coord_sf(datum = NA)+
   theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
   theme_minimal()+
-  scale_color_manual(values = c("red",  "gold","orange2", "blue"),
+  scale_color_manual(values = c("red","orange2",  "gold", "blue"),
                                name = "Accident Severity",
-                               breaks = c("as1", "as2", "as3", "as4"),
+                               breaks = c("as1",  "as3","as2", "as4"),
                                labels = c("fatalities", 
-                                          "light injuries", 
                                           "severe injuries",
+                                          "light injuries",
                                           "property damage"))
 #Version mit alpha
 ggplot() +
@@ -149,12 +147,29 @@ ggplot() +
   coord_sf(datum = NA)+
   theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
   theme_minimal()+
-  scale_color_manual(values = c(alpha("red",alpha = 1.0),  alpha("gold",alpha = 0.8),alpha("orange2",alpha = 0.8), alpha("blue",alpha = 0.8)),
+  scale_color_manual(values = c(alpha("red",alpha = 1.0), alpha("orange2",alpha = 0.8), alpha("gold",alpha = 0.8), alpha("blue",alpha = 0.8)),
                                name = "Accident Severity",
-                               breaks = c("as1", "as2", "as3", "as4"),
+                               breaks = c("as1",  "as3","as2", "as4"),
                                labels = c("fatalities", 
-                                          "light injuries", 
                                           "severe injuries",
+                                          "light injuries",
+                                          "property damage"))
+
+#Version mit small multiples
+ggplot() +
+  geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
+  geom_sf(data = districts, color = "black", fill = NA) +
+  facet_wrap(~AccidentSeverityCategory)+
+  coord_sf(datum = NA)+
+  theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
+  theme_minimal()+
+  theme(strip.text = element_blank())+
+  scale_color_manual(values = c("red","orange2",  "gold", "blue"),
+                               name = "Accident Severity",
+                               breaks = c("as1",  "as3","as2", "as4"),
+                               labels = c("fatalities", 
+                                          "severe injuries",
+                                          "light injuries",
                                           "property damage"))
 
 ```
