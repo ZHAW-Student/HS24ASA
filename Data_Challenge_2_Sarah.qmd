@@ -28,40 +28,34 @@ library(tidyverse)
 library(sfnetworks)
 library(spdep)
 library(reshape2)
+library(dbscan)
 ```
 
 # First part: Spatial Clustering ####
 * **Task 1:** Describe the bicycle network. In particular, discuss properties that emerged in this week’s session, such as:
-
 – What are the attributes of the nodes and edges?
-nodes:geometry
-edges: from    to osm_id    name      bridge tunnel highway                   geometry
-
-
 – How many nodes and edges are present in the network?
-24191 nodes and 29694 edges
-
 – Do the edges have geometries themselves, or are they merely relations between nodes that possess geometries?
-they do have geometries, there are point as well as linestring geometries present in this file
-
-
 – Is the network connected? (Largely) planar? Weighted? Does it contain self-loops?
 
-It technically contains loops, but those were broken down into separate lines (see documentation for creating the network). It is largely planar except for some bridges and tunnels. It is also not weighted
-An undirected simple graph with 1 component with spatially explicit edges
+
+The nodes (n = 24191) only have a geometry of the type "Point" and no other attributes. The edges (n = 29694) have beside the geometry which is of the type "Linestring" other attributes "from" and "to" describing the nodes at which they start and end, a name which describes the name of the road like "Neptunstrasse", if a name is present and an osm_id, which is the Identity it got based on it being Openstreetmap- data. It further contains the attributes "highway", which contains information about the order of the street, as well as bridge and tunnel, which each show whether it is a bridge or tunnel by having a 1/NA subdivision depending on whether the edge is a bridge or a tunnel. The network is connected, largely planar except for some tunnels and bridges and is also not weighted and does not contain self-loops.
 
 
 ```{r, results='hide'}
 
 biking_network <- readRDS("Session_6/biking_network.rds")
-
-ggplot() +
-  geom_sf(data=biking_network %>% activate(edges) %>% st_as_sf(), aes(color=highway), size=2) + 
-  geom_sf(data=biking_network %>% activate(nodes) %>% st_as_sf())
-
 biking_network
 
-summary(biking_network)
+ edges<-biking_network |> 
++   activate("edges") |> 
++   st_as_sf()
+ 
+edges<-dplyr::mutate(edges, testloop = (from - to))
+ 
+ggplot() +
+  geom_sf(data=biking_network |>  activate(edges) |>  st_as_sf(), aes(color=highway), size=2) + 
+  geom_sf(data=biking_network |>  activate(nodes) |>  st_as_sf())
 ```
 
 
@@ -69,11 +63,44 @@ summary(biking_network)
 
 
 ```{r, results='hide'}
-biking_network |>
-  activate("edges") |>
-  st_bbox()
-#  xmin    ymin    xmax    ymax 
-#2675307 1241182 2690295 1254844 
 
+nodes<-biking_network |> 
+  activate("nodes") |> 
+  st_as_sf()
+
+
+nodes_cor<-st_coordinates(nodes)
 ```
+
+```{r}
+kNNdistplot(nodes_cor, k=1)
+abline(h = 100, col = "red")
+abline(h = 75, col = "orange")
+abline(h = 50, col = "darkgreen")
+abline(h = 25, col = "blue")
+abline(h = 10, col = "purple")
+```
+
+
+Looking at the kNN distance plot a grid distance in the range from 50m to 75m seems acceptable. To decide on which end I looked at the roads in the Niederdörfli, which has rather short streets and measured the distance between several intersections. After seeing, that the distances between the intersections are rather on the short side. I decided to create a grid with the resolution of 50m.
+As i do not know what awaits me for the rest of the DC2, I decided to create a rectangular grid as well as a hexagonal grid and choose one later.
+
+```{r}
+bbox<-biking_network |>
+  activate("edges") |>
+  st_bbox()|> 
+  sf::st_as_sfc()
+
+hex_grid <- sf::st_make_grid(bbox, what = "polygons", 
+                          cellsize = 50, square = FALSE, flat_topped = FALSE)
+
+square_grid<- sf::st_make_grid(bbox, what = "polygons", 
+                           cellsize = 50, square = TRUE)
+
+ggplot() +
+  geom_sf(data = hex_grid, color = "red") + 
+  geom_sf(data = square_grid, color = "blue", fill = NA) + 
+  coord_sf(datum = 2056)#slow code
+```
+
 
