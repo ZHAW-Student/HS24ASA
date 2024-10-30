@@ -370,6 +370,7 @@ cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold
 ```
 ::: {.panel-tabset .nav-pills}
 # find best concavity value
+####Hier noch Beschriftung rein für Legende############ -> Sarah
 ```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -458,7 +459,7 @@ ggplot() +
 # Jaccard Index
 ```{r}
 # Compute the Jaccard Index
-## unify single polygones from 2018 and 2019
+## unify single polygons from 2018 and 2019
 poly2018 <- st_union(bike_acc2018_c1_con, 
                      bike_acc2018_c2_con,
                      bike_acc2018_c3_con,
@@ -627,6 +628,61 @@ KOMMENTAR
 
 Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
 
+
+
+* c. bicycle accidents for only the cluster points of the year selected in (b)
+Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
+
+##intersection
+```{r}
+districts145<-districts[10:12,]
+
+dist145_2018<-st_intersection(filter(onlybikes, AccidentYear ==2018),districts145)
+
+ggplot()+
+  geom_sf(data=boundary, aes(color="white"))+
+  geom_sf(data=dist145_2018, aes(color="black"))+
+  theme(legend.position="none")#looks good
+
+```
+
+
+::: {.panel-tabset .nav-pills}
+## Choosing a subset of districts
+```{r, echo=FALSE}
+ggplot(districts)+
+  geom_sf(aes(fill=KNR))+
+  geom_sf_label(aes(label = KNAME))+
+  theme_minimal() +
+  coord_sf(datum = NA)+
+  xlab("")+
+  ylab("")
+```
+
+## L-Function 2018 data
+```{r, echo=FALSE}
+# Create a ppp object 
+
+bike_accidents2018_coords145 <- sf::st_coordinates(dist145_2018)
+win18_145 <- as.owin(st_bbox(dist145_2018))
+bike_accidents2018_ppp_145 <- spatstat.geom::ppp(x = bike_accidents2018_coords145[,1], y =  bike_accidents2018_coords145[,2],
+                        window = win18, unitname = c("meter", "meters"))
+
+# Generate L-function
+bike_accidents2018_enve145 <- spatstat.explore::envelope(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents2018_enve145, main = "L-function of 2018 bike acccident points, with envelope for the districts 1,4 and 5")
+
+```
+
+## MAD & DCLF Test 2018 data
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, verbose = TRUE)
+
+```
+:::
 KOMMENTAR
 
 ## Task 16
@@ -641,6 +697,42 @@ KOMMENTAR
 ## Task 18
 From the bicycle accidents data, choose at least two relevant variables that make sense being compared, e.g. two different accident types, severity levels, times of day, years etc. For these selected accidents, compute the counts within the ‘statistical zones’ of Zurich and use these counts to compute the Getis-Ord G*-statistic for each of your counts layers. Visualize your results appropriately.
 
+```{r}
+# read data of statistical zones
+zh_stat_zone <- sf::st_read("Session_5/zh_stat_zones.gpkg")
+
+# Find nearest neighbors within 500m
+# You should play with nn.dis and see what it does to connectivity.
+nn_dis <- 500
+
+# create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
+bike_acc_nb <- spdep::dnearneigh(filter(onlybikes, AccidentSeverityCategory_en == c("Accident with severe injuries"
+,"Accident with light injuries") ), 0, nn_dis)
+
+# convert into list with spatial weights, B = binary weight
+bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
+
+# Create the line links from the nb object, requesting an sf object to be returned.
+# CRS needs to be set as it was carried over to the nb object.
+bike_acc_links <- 
+   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(filter(onlybikes, AccidentSeverityCategory_en == c("Accident with severe injuries"
+,"Accident with light injuries"))), as_sf = TRUE) |>
+   sf::st_set_crs(2056)
+# 
+# # Plot the neighbor links using functions from the tmap package
+tmap::tm_shape(districts) + 
+  tmap::tm_borders(col = "gray") +
+  tmap::tm_shape(bike_acc_links) + 
+  tmap::tm_lines(col = "red", lwd = 0.5) +
+  tmap::tm_shape(filter(onlybikes, AccidentSeverityCategory_en == c("Accident with severe injuries"
+,"Accident with light injuries"))) +
+  tmap::tm_dots(col = "black", size = 0.1) +
+  tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+   
+```
+
+
+####Hier fehlt noch was Sarah
 
 ## Task 19
 Discuss your results. What did you find regarding the hot and cold spots in your accident count layers? How do they compare to each other across layers and across (past) methods? etc. Discuss also the influence of the parameter settings (e.g., neighbor search distance, spatial weight formation) on your results.
