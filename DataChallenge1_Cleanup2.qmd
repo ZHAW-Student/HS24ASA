@@ -324,7 +324,7 @@ bike_acc2018_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2018, ops_reach2
 bike_acc2019_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2019, ops_reach2019$cluster)), 
                               coords = c("X", "Y"), crs = 2056)
 
-summary(bike_acc2018_clus) # for 2018 data, there are 4 clusters
+summary(bike_acc2018_clus) # for 2018 data, there are 3 clusters
 summary(bike_acc2019_clus) # for 2019 data, there are 7 clusters
 
 # separate data into single clusters
@@ -521,6 +521,32 @@ Choose any two years from the years 2018 to 2021 (justify your choice of years) 
 ####
 KOMMENTAR 
 ## Testing for normal distribution 
+```{r}
+ # get sf data for bike accidents in 2018 and 2019
+bike_accidents_sf <- bike_accidents|> 
+  filter(bike_accidents$AccidentInvolvingBicycle == "true")
+
+bike_accidents_2018_sf <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear == 2018)
+bike_accidents_2019_sf <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear == 2019)
+# drop everything except geometry
+bike_accidents_2018_og <- st_zm(bike_accidents_2018_sf[,22])
+bike_accidents_2019_og <- st_zm(bike_accidents_2019_sf[,22])
+
+# convert to SpatialPointsDataFrame
+bike_acc2018_point <- as(bike_accidents_2018_og, "Spatial")
+bike_acc2019_point <- as(bike_accidents_2019_og, "Spatial")
+
+# get coordinates and drop Z
+bike_acc2018_coords <- st_coordinates(bike_accidents_2018_sf)
+bike_acc2019_coords <- st_coordinates(bike_accidents_2019_sf)
+bike_acc2018_coords <- bike_acc2018_coords[,-3]
+bike_acc2019_coords <- bike_acc2019_coords[,-3]
+
+```
+
+
 ###Sarah LSCV adehabitat
 ```{r}
 # polygon if an sfc/sf object of type POLYGON was used.
@@ -540,34 +566,9 @@ teststats_19
 
 
 ```{r}
-# get sf data for bike accidents in 2018 and 2019
-bike_accidents_sf <- bike_accidents|> 
-  filter(bike_accidents$AccidentInvolvingBicycle == "true")
-
-bike_accidents_2018_sf <- bike_accidents_sf |> 
-  filter(bike_accidents_sf$AccidentYear == 2018)
-bike_accidents_2019_sf <- bike_accidents_sf |> 
-  filter(bike_accidents_sf$AccidentYear == 2019)
-
-# drop everything except geometry
-bike_accidents_2018_og <- st_zm(bike_accidents_2018_sf[,22])
-bike_accidents_2019_og <- st_zm(bike_accidents_2019_sf[,22])
-
-# convert to SpatialPointsDataFrame
-bike_acc2018_point <- as(bike_accidents_2018_og, "Spatial")
-bike_acc2019_point <- as(bike_accidents_2019_og, "Spatial")
-
-# get coordinates and drop Z
-bike_acc2018_coords <- st_coordinates(bike_accidents_2018_sf)
-bike_acc2019_coords <- st_coordinates(bike_accidents_2019_sf)
-bike_acc2018_coords <- bike_acc2018_coords[,-3]
-bike_acc2019_coords <- bike_acc2019_coords[,-3]
-
 # First estimate a value for the bandwidth, using the "Plug-in" selector (Hpi).
 h18 <- ks::Hpi(x = bike_acc2018_coords)
 h19 <- ks::Hpi(x = bike_acc2019_coords)
-
-
 # Now compute KDE; first without weights applied
 fkde18 <- ks::kde(bike_acc2018_coords, H = h18, compute.cont = TRUE)
 fkde19 <- ks::kde(bike_acc2019_coords, H = h19, compute.cont = TRUE)
