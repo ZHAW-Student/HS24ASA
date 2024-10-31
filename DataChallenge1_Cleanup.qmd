@@ -601,9 +601,6 @@ plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
 ## Task 13
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
 
-```{r}
-
-```
 
 
 KOMMENTAR
