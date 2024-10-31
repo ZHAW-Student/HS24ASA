@@ -741,7 +741,7 @@ tmap::tm_shape(districts) +
   tmap::tm_borders(col = "gray") +
   tmap::tm_shape(bike_acc_links) + 
   tmap::tm_lines(col = "red", lwd = 0.5) +
-  tmap::tm_shape(filter(onlybikes, AccidentSeverityCategory_en == c("Accident with severe injuries"
+  tmap::tm_shape(filter(bike_accidents_sf, AccidentSeverityCategory_en == c("Accident with severe injuries"
 ,"Accident with light injuries"))) +
   tmap::tm_dots(col = "black", size = 0.1) +
   tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
