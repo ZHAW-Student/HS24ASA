@@ -132,6 +132,8 @@ ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle, label=n
 Select only those accidents that involved a bicycle. **From now on, and for the remainder of DC1, we will restrict our analysis to the accidents involving bicycles.** With this subset, produce a map showing the bicycle accident data colored by accident severity category. Use a basemap such as OpenStreetMap and/or the boundary data available on OLAT, so the accidents can be visually and spatially referenced.
 
 ::: {.panel-tabset .nav-pills}
+
+##Abbildungstitel -> Sarah
 # All bike accidents
 ```{r, echo=FALSE}
 bike_accidents <- accidents |> 
@@ -252,10 +254,12 @@ bike_accidents2021 <- st_coordinates(bike_accidents |>
 
 ::: {.panel-tabset .nav-pills}
 ## Reachability Plot 2018 data
+
+######Anpassung Werte basierend auf Daten von 2019 -> Saskia was suchen, dass Sinn ergibt und au 8er übertragen
 ```{r, echo=FALSE}
 # clustering with optics
 ops_reach2018 <- optics(bike_accidents2018)
-ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 500)
+ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 450)
 ops_reach2018
 plot(ops_reach2018)
 ```
@@ -274,7 +278,7 @@ hullplot(bike_accidents2018, ops_reach2018, asp = 1)
 ```{r, echo=FALSE}
 # clustering with optics
 ops_reach2019 <- optics(bike_accidents2019)
-ops_reach2019 <- extractDBSCAN(ops_reach2019, eps_cl = 500)
+ops_reach2019 <- extractDBSCAN(ops_reach2019, eps_cl = 450)
 ops_reach2019
 plot(ops_reach2019)
 ```
@@ -311,7 +315,7 @@ KOMMENTAR
 ## Task 9
 From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
 
-##da stimmt noch immer was mit dieser Intersection nicht
+##da stimmt noch immer was mit dieser Intersection nicht -> Sarah
 
 ```{r , echo = FALSE}
 # add cluster info to data
@@ -331,8 +335,8 @@ bike_acc2018_c2 <- bike_acc2018_clus |>
   filter(V4 == 2)
 bike_acc2018_c3 <- bike_acc2018_clus |> 
   filter(V4 == 3)
-bike_acc2018_c4 <- bike_acc2018_clus |> 
-  filter(V4 == 4)
+#bike_acc2018_c4 <- bike_acc2018_clus |> 
+  #filter(V4 == 4)
 # bike_acc2018_c5 <- bike_acc2018_clus |> 
 #   filter(V4 == 5)
 # bike_acc2018_c6 <- bike_acc2018_clus |> 
@@ -370,23 +374,22 @@ cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold
 ```
 ::: {.panel-tabset .nav-pills}
 # find best concavity value
-####Hier noch Beschriftung rein für Legende############ -> Sarah
 ```{r}
-ggplot() +
-  geom_sf(data = districts, color = "black", fill = NA) +
-  geom_sf(data=bike_acc2018_c1, size = 0.5) +
-  geom_sf(data = cave_acc2018_2, color = "cyan", fill = alpha("cyan", alpha=0.2)) +
-  geom_sf(data = cave_acc2018_1, color = "magenta", fill = alpha("magenta", alpha=0.2)) +
-  geom_sf(data = cave_acc2018_05, color = "yellow", fill = alpha("yellow", alpha=0.2)) +
-  coord_sf(datum = NA)+
-  ggtitle("find best concavity value")+
-  theme_minimal()
+#ggplot() +
+  # geom_sf(data = districts, color = "black", fill = NA) +
+  # geom_sf(data=bike_acc2018_c1, size = 0.5) +
+  # geom_sf(data = cave_acc2018_2, color = "cyan", fill = alpha("cyan", alpha=0.2)) +
+  # geom_sf(data = cave_acc2018_1, color = "magenta", fill = alpha("magenta", alpha=0.2)) +
+  # geom_sf(data = cave_acc2018_05, color = "yellow", fill = alpha("yellow", alpha=0.2)) +
+  # coord_sf(datum = NA)+
+  # ggtitle("find best concavity value")+
+  # theme_minimal()
 
 # 1 seems best value for concavity
 bike_acc2018_c1_con <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
 bike_acc2018_c2_con <- concaveman(bike_acc2018_c2, concavity = 1, length_threshold = 0)
 bike_acc2018_c3_con <- concaveman(bike_acc2018_c3, concavity = 1, length_threshold = 0)
-bike_acc2018_c4_con <- concaveman(bike_acc2018_c4, concavity = 1, length_threshold = 0)
+#bike_acc2018_c4_con <- concaveman(bike_acc2018_c4, concavity = 1, length_threshold = 0)
 # bike_acc2018_c5_con <- concaveman(bike_acc2018_c5, concavity = 1, length_threshold = 0)
 # bike_acc2018_c6_con <- concaveman(bike_acc2018_c6, concavity = 1, length_threshold = 0)
 # bike_acc2018_c7_con <- concaveman(bike_acc2018_c7, concavity = 1, length_threshold = 0)
@@ -414,8 +417,8 @@ ggplot() +
   geom_sf(data = bike_acc2018_c2_con, color = "purple", fill = alpha("purple", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c3, color = "black", size = 0.5) +
   geom_sf(data = bike_acc2018_c3_con, color = "seagreen", fill = alpha("seagreen", alpha=0.3)) + 
-  geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2018_c4_con, color = "chartreuse", fill = alpha("chartreuse", alpha=0.3)) + 
+  #geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
+  #geom_sf(data = bike_acc2018_c4_con, color = "chartreuse", fill = alpha("chartreuse", alpha=0.3)) + 
   # geom_sf(data = bike_acc2018_c5, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = alpha("blue", alpha=0.3)) + 
   # geom_sf(data = bike_acc2018_c6, color = "black", size = 0.5) +
@@ -429,6 +432,7 @@ ggplot() +
 ```
 
 # Clusters of bike accidents 2019
+#####Fehler Saskia fixen
 ```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -456,7 +460,8 @@ ggplot() +
   coord_sf(datum = NA)
 ```
 
-# Jaccard Index
+# Jaccard Index 
+###Sarah Flächen nicht komplett
 ```{r}
 # Compute the Jaccard Index
 ## unify single polygons from 2018 and 2019
@@ -513,8 +518,26 @@ KOMMENTAR
 
 ## Task 12
 Choose any two years from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
-
+####
 KOMMENTAR 
+## Testing for normal distribution 
+###Sarah LSCV adehabitat
+```{r}
+# polygon if an sfc/sf object of type POLYGON was used.
+win_bike_18 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2018_sf))
+bike_18_ppp <- spatstat.geom::ppp(x = bike_acc2018_coords[,1], y = bike_acc2018_coords[,2], window = win_bike_18)
+
+teststats_18 <- quadrat.test(bike_18_ppp, nx = 10, ny = 10)
+teststats_18
+
+win_bike_19 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2019_sf))
+bike_19_ppp <- spatstat.geom::ppp(x = bike_acc2019_coords[,1], y = bike_acc2019_coords[,2], window = win_bike_19)
+
+teststats_19 <- quadrat.test(bike_19_ppp, nx = 10, ny = 10)
+teststats_19
+
+```
+
 
 ```{r}
 # get sf data for bike accidents in 2018 and 2019
@@ -546,11 +569,19 @@ h19 <- ks::Hpi(x = bike_acc2019_coords)
 
 
 # Now compute KDE; first without weights applied
-fkde18 <- ks::kde(bike_acc2018_coords, H = h18)
-fkde19 <- ks::kde(bike_acc2019_coords, H = h19)
+fkde18 <- ks::kde(bike_acc2018_coords, H = h18, compute.cont = TRUE)
+fkde19 <- ks::kde(bike_acc2019_coords, H = h19, compute.cont = TRUE)
+
+
+#Apply LSCV
+
+
+
 ```
 
 ::: {.panel-tabset .nav-pills}
+
+
 # Unweighted KDE; plug-in bandwidth 2018 data
 ```{r}
 # Plotting utilizes the specialized S3 plot.kde() function
@@ -563,22 +594,6 @@ plot(bike_accidents_2018_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
 ```{r}
 plot(fkde19, display = "filled.contour2", 
      cont = c(10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100), asp = 1)
-plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
-```
-
-# Unweighted KDE; smoothed cross validation bandwidth (SCV) 2018 data
-```{r}
-h18_scv <- ks::Hscv(x = bike_acc2018_coords)
-fkde18_scv <- ks::kde(bike_acc2018_coords, H = h18_scv)
-plot(fkde18_scv, display = "persp")
-plot(bike_accidents_2018_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
-```
-
-# Unweighted KDE; smoothed cross validation bandwidth (SCV) 2019 data
-```{r}
-h19_scv <- ks::Hscv(x = bike_acc2019_coords)
-fkde19_scv <- ks::kde(bike_acc2019_coords, H = h19_scv)
-plot(fkde19_scv, display = "persp")
 plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
 ```
 
@@ -601,7 +616,7 @@ plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
 
 ## Task 13
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
-
+####Sarah VI berechnen
 ```{r}
 
 ```
@@ -633,11 +648,12 @@ Restrict your analysis to the “inner city” and use the same window for all p
 * c. bicycle accidents for only the cluster points of the year selected in (b)
 Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
 
+
 ##intersection
 ```{r}
 districts145<-districts[10:12,]
 
-dist145_2018<-st_intersection(filter(onlybikes, AccidentYear ==2018),districts145)
+dist145_2018<-st_intersection(filter(bike_accidents, AccidentYear ==2018),districts145)
 
 ggplot()+
   geom_sf(data=boundary, aes(color="white"))+
@@ -666,7 +682,7 @@ ggplot(districts)+
 bike_accidents2018_coords145 <- sf::st_coordinates(dist145_2018)
 win18_145 <- as.owin(st_bbox(dist145_2018))
 bike_accidents2018_ppp_145 <- spatstat.geom::ppp(x = bike_accidents2018_coords145[,1], y =  bike_accidents2018_coords145[,2],
-                        window = win18, unitname = c("meter", "meters"))
+                        window = win18_145, unitname = c("meter", "meters"))
 
 # Generate L-function
 bike_accidents2018_enve145 <- spatstat.explore::envelope(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
@@ -706,7 +722,7 @@ zh_stat_zone <- sf::st_read("Session_5/zh_stat_zones.gpkg")
 nn_dis <- 500
 
 # create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
-bike_acc_nb <- spdep::dnearneigh(filter(onlybikes, AccidentSeverityCategory_en == c("Accident with severe injuries"
+bike_acc_nb <- spdep::dnearneigh(filter(bike_accidents_sf, AccidentSeverityCategory_en == c("Accident with severe injuries"
 ,"Accident with light injuries") ), 0, nn_dis)
 
 # convert into list with spatial weights, B = binary weight
@@ -715,7 +731,7 @@ bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
 # Create the line links from the nb object, requesting an sf object to be returned.
 # CRS needs to be set as it was carried over to the nb object.
 bike_acc_links <- 
-   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(filter(onlybikes, AccidentSeverityCategory_en == c("Accident with severe injuries"
+   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(filter(bike_accidents_sf, AccidentSeverityCategory_en == c("Accident with severe injuries"
 ,"Accident with light injuries"))), as_sf = TRUE) |>
    sf::st_set_crs(2056)
 # 
