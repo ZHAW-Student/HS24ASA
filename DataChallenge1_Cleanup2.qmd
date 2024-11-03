@@ -133,7 +133,6 @@ Select only those accidents that involved a bicycle. **From now on, and for the 
 
 ::: {.panel-tabset .nav-pills}
 
-##Abbildungstitel -> Sarah
 # All bike accidents
 ```{r, echo=FALSE}
 bike_accidents <- accidents |> 
@@ -432,7 +431,7 @@ ggplot() +
 ```
 
 # Clusters of bike accidents 2019
-#####Fehler Saskia fixen
+#####Fehler Saskia fixen. Info von Sarah: CLuster 7 kann nicht geplottet werden, da es nur ein punkt ist
 ```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -449,7 +448,7 @@ ggplot() +
   geom_sf(data = bike_acc2019_c6, color = "black", size = 0.5) +
   geom_sf(data = bike_acc2019_c6_con, color = "lightblue",  fill = alpha("lightblue", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c7, color = "black", size = 0.5) +
-  geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = alpha("orange", alpha=0.3))  + 
+  #geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = alpha("orange", alpha=0.3))  + 
   # geom_sf(data = bike_acc2019_c8, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2019_c8_con, color = "red",  fill = alpha("red", alpha=0.3)) +
   # geom_sf(data = bike_acc2019_c9, color = "black", size = 0.5) +
@@ -461,35 +460,27 @@ ggplot() +
 ```
 
 # Jaccard Index 
-###Sarah Flächen nicht komplett
 ```{r}
 # Compute the Jaccard Index
 ## unify single polygons from 2018 and 2019
-poly2018 <- st_union(bike_acc2018_c1_con, 
-                     bike_acc2018_c2_con,
-                     bike_acc2018_c3_con,
-                     bike_acc2018_c4_con,
-                     # bike_acc2018_c5_con,
-                     # bike_acc2018_c6_con,
-                     # bike_acc2018_c7_con,
-                     # bike_acc2018_c8_con
-                     )
-poly2019 <- st_union(bike_acc2019_c1_con, 
-                     bike_acc2019_c2_con,
-                     bike_acc2019_c3_con,
-                     bike_acc2019_c4_con,
-                     bike_acc2019_c5_con,
-                     bike_acc2019_c6_con,
-                     bike_acc2019_c7_con,
-                     # bike_acc2019_c8_con,
-                     # bike_acc2019_c9_con,
-                     # bike_acc2019_c10_con
-                     )
+
+
+pol18<- dplyr::bind_rows(list(bike_acc2018_c1_con, 
+                     bike_acc2018_c2_con,bike_acc2018_c3_con))
+
+pol19<- dplyr::bind_rows(list(bike_acc2019_c1_con, bike_acc2019_c2_con,
+                     bike_acc2019_c3_con, bike_acc2019_c4_con,
+                     bike_acc2019_c5_con, bike_acc2019_c6_con))
+
+poly2018<-st_union(pol18)
+poly2019<-st_union(pol19)
+
 
 ## compute difference
 poly2018_2019_diff <- st_difference(poly2018, poly2019)
 poly2019_2018_diff <- st_difference(poly2019, poly2018)
 poly_18_19diff <- st_union(poly2018_2019_diff, poly2019_2018_diff)
+
 
 plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
@@ -520,7 +511,6 @@ KOMMENTAR
 Choose any two years from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
 ####
 KOMMENTAR 
-## Testing for normal distribution 
 ```{r}
  # get sf data for bike accidents in 2018 and 2019
 bike_accidents_sf <- bike_accidents|> 
@@ -546,15 +536,16 @@ bike_acc2019_coords <- bike_acc2019_coords[,-3]
 
 ```
 
-
+## Testing for normal distribution 
 ###Sarah LSCV adehabitat
+
 ```{r}
 # polygon if an sfc/sf object of type POLYGON was used.
 win_bike_18 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2018_sf))
 bike_18_ppp <- spatstat.geom::ppp(x = bike_acc2018_coords[,1], y = bike_acc2018_coords[,2], window = win_bike_18)
 
 teststats_18 <- quadrat.test(bike_18_ppp, nx = 10, ny = 10)
-teststats_18
+
 
 win_bike_19 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2019_sf))
 bike_19_ppp <- spatstat.geom::ppp(x = bike_acc2019_coords[,1], y = bike_acc2019_coords[,2], window = win_bike_19)
@@ -563,20 +554,70 @@ teststats_19 <- quadrat.test(bike_19_ppp, nx = 10, ny = 10)
 teststats_19
 
 ```
+::: {.panel-tabset .nav-pills}
+#Test for normal distribution 2018
+```{r}
+teststats_18
+```
+
+#Test for normal distribution 2019
+```{r}
+teststats_19
+```
+
+
 
 
 ```{r}
-# First estimate a value for the bandwidth, using the "Plug-in" selector (Hpi).
-h18 <- ks::Hpi(x = bike_acc2018_coords)
-h19 <- ks::Hpi(x = bike_acc2019_coords)
-# Now compute KDE; first without weights applied
-fkde18 <- ks::kde(bike_acc2018_coords, H = h18, compute.cont = TRUE)
-fkde19 <- ks::kde(bike_acc2019_coords, H = h19, compute.cont = TRUE)
 
+bike_accidents_2018_sp <- as(bike_accidents_2018_sf, "Spatial")
+bike_accidents_2019_sp <- as(bike_accidents_2019_sf, "Spatial")
+
+
+bikes18_z<-st_zm(bike_accidents_2018_sf[,22])
+bikes19_z<-st_zm(bike_accidents_2019_sf[,22])
+
+bike_accidents_2018_sp <- as(bikes18_z, "Spatial")
+bike_accidents_2019_sp<- as(bikes19_z, "Spatial")
+
+
+#we adapt the percentage to the percentage of all points which was included in previous clustering to define the homerange
+593+9+7#609
+583+4+17+8+4+5#621
+
+100/692*609#88.01
+100/695*621#89.35
+#to use a round number and try to make them more compatible we are using 88.5 to get a comparable area
+
+
+ext_val <- 0.45   
+grid_val <- 800   #use val from earlier calculation
 
 #Apply LSCV
+ud18 <- adehabitatHR::kernelUD(bike_accidents_2018_sp, grid = grid_val, extent = ext_val, h = "LSCV")
 
 
+hr95 <- adehabitatHR::getverticeshr(ud18, percent = 95) 
+hr88.5 <- adehabitatHR::getverticeshr(ud18, percent = 88.5)  
+
+hr50 <- adehabitatHR::getverticeshr(ud18, percent = 50)   
+graphics::image(ud18, xlab = "x [m]", ylab = "y [m]",
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+xmin <- min(ud18$ZH@coords[,1])
+xmax <- max(ud18$ZH@coords[,1])
+ymin <- min(ud18$ZH@coords[,2])
+ymax <- max(ud18$ZH@coords[,2])
+plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr88.5, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
+plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+axis(1)
+axis(2, pos = xmin - 100)
+text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
+     adj = c(NA, -4), srt = 90)
+title("KDE with bandwidth selection method HREF", line = -0.3)
+legend("topright", c("HR 50%", "HR 95%"), 
+       col = c("black", "blue"), lwd = c(3, 2), lty = c(4, 1), 
+       inset = c(0.19, 0.06), cex = 0.75)
 
 ```
 
@@ -619,6 +660,34 @@ plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
 ####Sarah VI berechnen
 ```{r}
+
+kdepol18<- dplyr::bind_rows(list(bike_acc2018_c1_con, 
+                     bike_acc2018_c2_con,bike_acc2018_c3_con))
+
+kdepol19<- dplyr::bind_rows(list(bike_acc2019_c1_con, bike_acc2019_c2_con,
+                     bike_acc2019_c3_con, bike_acc2019_c4_con,
+                     bike_acc2019_c5_con, bike_acc2019_c6_con))
+
+kdepoly2018<-st_union(kdepol18)
+kdepoly2019<-st_union(kdepol19)
+
+
+## compute difference
+kdepoly2018_2019_diff <- st_difference(kdepoly2018, kdepoly2019)
+kdepoly2019_2018_diff <- st_difference(kdepoly2019, kdepoly2018)
+kdepoly_18_19diff <- st_union(kdepoly2018_2019_diff, kdepoly2019_2018_diff)
+
+
+plot(st_coordinates(kdepoly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
+     type = "n", asp = 1)
+plot(kdepoly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
+plot(kdepoly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
+plot(kdepoly_18_19diff, border = "purple", add = TRUE)
+
+cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
+    "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
+    "Difference Area:    ", sf::st_area(poly_18_19diff), "m^2 \n")
+
 
 ```
 
@@ -718,13 +787,12 @@ From the bicycle accidents data, choose at least two relevant variables that mak
 # read data of statistical zones
 zh_stat_zone <- sf::st_read("Session_5/zh_stat_zones.gpkg")
 
-# Find nearest neighbors within 500m
-# You should play with nn.dis and see what it does to connectivity.
-nn_dis <- 500
+nn_dis <- 450
+
+getisbikedata<-filter(bike_accidents_sf, AccidentYear =="2018"| AccidentYear == "2019")[,c(24,38)]
 
 # create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
-bike_acc_nb <- spdep::dnearneigh(filter(bike_accidents_sf, AccidentSeverityCategory_en == c("Accident with severe injuries"
-,"Accident with light injuries") ), 0, nn_dis)
+bike_acc_nb <- spdep::dnearneigh(getisbikedata, 0, nn_dis)
 
 # convert into list with spatial weights, B = binary weight
 bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
@@ -732,8 +800,7 @@ bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
 # Create the line links from the nb object, requesting an sf object to be returned.
 # CRS needs to be set as it was carried over to the nb object.
 bike_acc_links <- 
-   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(filter(bike_accidents_sf, AccidentSeverityCategory_en == c("Accident with severe injuries"
-,"Accident with light injuries"))), as_sf = TRUE) |>
+   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(getisbikedata), as_sf = TRUE) |>
    sf::st_set_crs(2056)
 # 
 # # Plot the neighbor links using functions from the tmap package
@@ -741,13 +808,87 @@ tmap::tm_shape(districts) +
   tmap::tm_borders(col = "gray") +
   tmap::tm_shape(bike_acc_links) + 
   tmap::tm_lines(col = "red", lwd = 0.5) +
-  tmap::tm_shape(filter(bike_accidents_sf, AccidentSeverityCategory_en == c("Accident with severe injuries"
-,"Accident with light injuries"))) +
+  tmap::tm_shape(getisbikedata) +
   tmap::tm_dots(col = "black", size = 0.1) +
   tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
    
 ```
 
+
+```{r}
+var_string <- c("2018", "2019")
+variant <- c("2018", "2019")
+
+# For each variant, compute local Gi*-statistic with spdep::localG() and 
+# display as choropleth map.
+
+# Define a function that, for a given variant, computes the local Gi*-statistic 
+# with spdep::localG() and displays it as a choropleth map.
+plot_variant <- function(i, j) {
+
+# Create local Gi* stats object
+sads_lG <-
+    spdep::localG(x = as.numeric(unlist(getisbikedata[, i])), listw = bike_acc_lw)
+  
+  # attach Gi* statistic values to the sfc_POINT object
+  s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
+  tmp_sf <- bind_cols(getisbikedata, as.data.frame(s_lG))
+  
+  # generate map with dot symbols shaded according to Gi*-stats value
+  m <- tmap::tm_shape(cantons_bound) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Variant \"", variant[j], "\"", sep = "")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for comparative clause",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+  
+  # a tmap inside a loop needs to be *printed* explicitly; otherwise it won't show
+  # print(m)
+  
+  return(m)
+}
+
+```
+
+
+::: {.panel-tabset .nav-pills}
+
+### Variant "als"
+```{r}
+plot_variant("2018", 1)
+```
+
+### Variant "weder"
+```{r}
+plot_variant("prop_v2_weder", 2)
+```
+
+### Variant "wie"
+```{r}
+plot_variant("prop_v3_wie", 3)
+```
+
+### Variant "wan"
+```{r}
+plot_variant("prop_v4_wan", 4)
+```
+
+:::
 
 ####Hier fehlt noch was Sarah
 
