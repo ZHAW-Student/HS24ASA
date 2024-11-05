@@ -590,15 +590,16 @@ bike_accidents_2019_sp<- as(bikes19_z, "Spatial")
 #to use a round number and try to make them more compatible we are using 88.5 to get a comparable area
 
 
-ext_val <- 0.45   
-grid_val <- 800   #use val from earlier calculation
+ext_val <- 0.5   
+grid_val <- 500   #use val from earlier calculation
 
 #Apply LSCV
-ud18 <- adehabitatHR::kernelUD(bike_accidents_2018_sp, grid = grid_val, extent = ext_val, h = "LSCV")
+ud18 <- adehabitatHR::kernelUD(bike_accidents_2018_sp, grid = grid_val, extent = ext_val, h = "href")
 
 
 hr95 <- adehabitatHR::getverticeshr(ud18, percent = 95) 
 hr88.5 <- adehabitatHR::getverticeshr(ud18, percent = 88.5)  
+hr75 <- adehabitatHR::getverticeshr(ud18, percent = 75)  
 
 hr50 <- adehabitatHR::getverticeshr(ud18, percent = 50)   
 graphics::image(ud18, xlab = "x [m]", ylab = "y [m]",
@@ -607,7 +608,8 @@ xmin <- min(ud18$ZH@coords[,1])
 xmax <- max(ud18$ZH@coords[,1])
 ymin <- min(ud18$ZH@coords[,2])
 ymax <- max(ud18$ZH@coords[,2])
-plot(hr50, lty = 4, lwd = 3, border = "black", add = TRUE, axes = FALSE)
+plot(hr50, lty = 1, lwd = 2, border = "black", add = TRUE, axes = FALSE)
+plot(hr75, lty = 1, lwd = 2, border = "darkgreen", add = TRUE, axes = FALSE)
 plot(hr88.5, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
 plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
 axis(1)
