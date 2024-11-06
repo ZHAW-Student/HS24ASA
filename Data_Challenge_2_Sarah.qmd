@@ -29,7 +29,16 @@ library(sfnetworks)
 library(spdep)
 library(reshape2)
 library(dbscan)
+library(leaflet)
 ```
+
+```{r, echo=FALSE}
+
+biking_network <- readRDS("Session_6/biking_network.rds")
+boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
+districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
+```
+
 
 # First part: Spatial Clustering ####
 * **Task 1:** Describe the bicycle network. In particular, discuss properties that emerged in this week’s session, such as:
@@ -44,12 +53,11 @@ The nodes (n = 24191) only have a geometry of the type "Point" and no other attr
 
 ```{r, results='hide'}
 
-biking_network <- readRDS("Session_6/biking_network.rds")
 biking_network
 
- edges<-biking_network |> 
-+   activate("edges") |> 
-+   st_as_sf()
+edges<-biking_network |> 
+  activate("edges") |> 
+  st_as_sf()
  
 edges<-dplyr::mutate(edges, testloop = (from - to))
  
@@ -63,7 +71,6 @@ ggplot() +
 
 
 ```{r, results='hide'}
-
 nodes<-biking_network |> 
   activate("nodes") |> 
   st_as_sf()
@@ -97,10 +104,77 @@ hex_grid <- sf::st_make_grid(bbox, what = "polygons",
 square_grid<- sf::st_make_grid(bbox, what = "polygons", 
                            cellsize = 50, square = TRUE)
 
-ggplot() +
-  geom_sf(data = hex_grid, color = "red") + 
-  geom_sf(data = square_grid, color = "blue", fill = NA) + 
-  coord_sf(datum = 2056)#slow code
+# ggplot() +
+#   geom_sf(data = hex_grid, color = "red") + 
+#   geom_sf(data = square_grid, color = "blue", fill = NA) + 
+#   coord_sf(datum = 2056)#slow code
+```
+
+# Second part: Network measures ####
+* **Task 3:** Have you ever cycled in Zürich? Compute and plot the optimal path from the starting point to the endpoint of a cycling route you are familiar with. You can use the biking_network.rds provided in Session 06, or adapt the CycleNetwork.rmd to create your own network. Compare the route inferred by the network with your preferred route.
+
+
+I have never cycled in Zürich as I do not live here and consider lots of spaces kind of dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But i know the area from Wiedikon to the main station pretty well and can try to see whether i can try to give a feedback to this.
+```{r}
+
+
 ```
 
 
+* **Task 4:** In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
+
+• Why is it reasonable to assume that the measure you choose correlates with the amount of bike traffic?
+
+• What potential problems might arise with this measure? For example, the network contains many
+parallel paths in close proximity, which could influence measures that rely on shortest-path computations.
+
+I chose the betweenness centrality as it should highlight places where bike traffic almost is forced through as they are the shortest path for many routes which should lead to more traffic in those areas. 
+For this I assume, that cyclists do not avoid traffic hotspots, which i would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits.
+
+Potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
+
+
+
+• Plot your chosen measure for the network.
+
+```{r}
+
+```
+
+
+
+* **Task 5:** A new bicycle infrastructure project, the “Stadttunnel” is under construction, connecting the coordinates (8.53619°E, 47.37768°N) with (8.53783°E, 47.38024°N) beneath the station. Analyse how this project affects the network measure you selected in Task 4, and visualise the changes. Depending on when you retrieved the data from OSM, the Stadttunnel might already be included in the network or not. If you encounter difficulties removing or adding the edge, please refer to the script remove_or_add_edge.r available on OLAT.
+
+can be another statistic. should be applied to edges but not the whole network.
+
+```{r}
+Velotunnel<-filter(edges,name=="Velotunnel")
+Velotunnel_compare <- st_transform(Velotunnel, crs=4326)
+Velotunnel_compare$geometry
+
+
+Velotunnel_real <- data.frame(
+  name = c("Start Tunnel", "End Tunnel"),
+  lon  = c(8.53619, 8.53783),
+  lat  = c(47.37768, 47.38024),
+  stringsAsFactors = FALSE)
+
+Velotunnel_real_sf<- st_as_sf(Velotunnel_real, coords = c("lon", "lat"), 
+                         crs = 4326)
+   
+leaflet() |>  addProviderTiles("Esri.WorldTopoMap", group = "Terrain")  |> 
+ addPolylines(data = Velotunnel_compare, color = "steelblue", weight = 2, opacity = 1, group = "Route") |> 
+ addCircleMarkers(data =Velotunnel_real, radius = 2, color = "black", opacity = 1)
+   
+   
+```
+
+The tunnel is already present in the dataset although it does not quite end at one of the given coordinates.
+
+```{r}
+
+
+```
+
+
+This project affects x
