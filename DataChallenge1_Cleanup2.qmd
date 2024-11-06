@@ -484,7 +484,7 @@ plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]",
      type = "n", asp = 1)
 plot(poly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
 plot(poly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
-plot(poly_18_19diff, border = "purple", add = TRUE)
+plot(poly_18_19diff, border = "purple", add = TRUE, col =NA)
 
 cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
@@ -536,7 +536,6 @@ bike_acc2019_coords <- bike_acc2019_coords[,-3]
 ```
 
 ## Testing for normal distribution 
-###Sarah LSCV adehabitat
 
 ```{r}
 # polygon if an sfc/sf object of type POLYGON was used.
@@ -564,7 +563,7 @@ teststats_18
 teststats_19
 ```
 
-
+:::
 
 
 ```{r}
@@ -586,111 +585,74 @@ bike_accidents_2019_sp<- as(bikes19_z, "Spatial")
 
 100/692*609#88.01
 100/695*621#89.35
-#to use a round number and try to make them more compatible we are using 88.5 to get a comparable area
+#to use a round number and try to make them more compatible we are using 90 to get a comparable area
 
 
 ext_val <- 0.5   
 grid_val <- 500   #use val from earlier calculation
 
-#Apply LSCV
 ud18 <- adehabitatHR::kernelUD(bike_accidents_2018_sp, grid = grid_val, extent = ext_val, h = "href")
+ud19 <- adehabitatHR::kernelUD(bike_accidents_2019_sp, grid = grid_val, extent = ext_val, h = "href")
+
+hr18_90 <- adehabitatHR::getverticeshr(ud18, percent = 90)  
+hr19_90 <- adehabitatHR::getverticeshr(ud19, percent = 90)  
+
+```
 
 
-hr95 <- adehabitatHR::getverticeshr(ud18, percent = 95) 
-hr88.5 <- adehabitatHR::getverticeshr(ud18, percent = 88.5)  
-hr75 <- adehabitatHR::getverticeshr(ud18, percent = 75)  
+```{r}
 
-hr50 <- adehabitatHR::getverticeshr(ud18, percent = 50)   
+
 graphics::image(ud18, xlab = "x [m]", ylab = "y [m]",
                 col = hcl.colors(200, palette = "heat 2", rev = TRUE))
-xmin <- min(ud18$ZH@coords[,1])
-xmax <- max(ud18$ZH@coords[,1])
-ymin <- min(ud18$ZH@coords[,2])
-ymax <- max(ud18$ZH@coords[,2])
-plot(hr50, lty = 1, lwd = 2, border = "black", add = TRUE, axes = FALSE)
-plot(hr75, lty = 1, lwd = 2, border = "darkgreen", add = TRUE, axes = FALSE)
-plot(hr88.5, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
-plot(hr95, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
+graphics::image(ud19, xlab = "x [m]", ylab = "y [m]",
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+
+
+xmin <- min(ud19$ZH@coords[,1])
+xmax <- max(ud19$ZH@coords[,1])
+ymin <- min(ud19$ZH@coords[,2])
+ymax <- max(ud19$ZH@coords[,2])
+
+plot(hr18_90, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
+plot(hr19_90, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
 axis(1)
 axis(2, pos = xmin - 100)
 text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
      adj = c(NA, -4), srt = 90)
-title("KDE with bandwidth selection method HREF", line = -0.3)
-legend("topright", c("HR 50%", "HR 95%"), 
-       col = c("black", "blue"), lwd = c(3, 2), lty = c(4, 1), 
-       inset = c(0.19, 0.06), cex = 0.75)
-
+title("", line = -0.3)
 ```
-
-::: {.panel-tabset .nav-pills}
-
-
-# Unweighted KDE; plug-in bandwidth 2018 data
-```{r}
-# Plotting utilizes the specialized S3 plot.kde() function
-plot(fkde18, display = "filled.contour2", 
-     cont = c(10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100), asp = 1)
-plot(bike_accidents_2018_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
-```
-
-# Unweighted KDE; plug-in bandwidth 2019 data
-```{r}
-plot(fkde19, display = "filled.contour2", 
-     cont = c(10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100), asp = 1)
-plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
-```
-
-# Unweighted KDE; least-squares cross validation bandwidth (LSCV) 2018 data
-```{r}
-h18_lscv <- ks::Hlscv(x = bike_acc2018_coords)
-fkde18_lscv <- ks::kde(bike_acc2018_coords, H = h18_lscv)
-plot(fkde18_lscv, display = "image", asp = 1)
-plot(bike_accidents_2018_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
-```
-
-# Unweighted KDE; least-squares cross validation bandwidth (LSCV) 2019 data
-```{r}
-h19_lscv <- ks::Hlscv(x = bike_acc2019_coords)
-fkde19_lscv <- ks::kde(bike_acc2019_coords, H = h19_lscv)
-plot(fkde19_lscv, display = "image", asp = 1)
-plot(bike_accidents_2019_sf, cex = 0.5, pch = 16, col = "black", add = TRUE)
-```
-:::
 
 ## Task 13
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
-####Sarah VI berechnen
+
 ```{r}
 
-kdepol18<- dplyr::bind_rows(list(bike_acc2018_c1_con, 
-                     bike_acc2018_c2_con,bike_acc2018_c3_con))
+hr18_90sf <-st_as_sf(hr18_90)
 
-kdepol19<- dplyr::bind_rows(list(bike_acc2019_c1_con, bike_acc2019_c2_con,
-                     bike_acc2019_c3_con, bike_acc2019_c4_con,
-                     bike_acc2019_c5_con, bike_acc2019_c6_con))
-
-kdepoly2018<-st_union(kdepol18)
-kdepoly2019<-st_union(kdepol19)
-
+hr19_90sf <-st_as_sf(hr19_90)
 
 ## compute difference
-kdepoly2018_2019_diff <- st_difference(kdepoly2018, kdepoly2019)
-kdepoly2019_2018_diff <- st_difference(kdepoly2019, kdepoly2018)
-kdepoly_18_19diff <- st_union(kdepoly2018_2019_diff, kdepoly2019_2018_diff)
+hr2018_2019_diff <- st_difference(hr18_90sf, hr19_90sf)
+hr2019_2018_diff <- st_difference(hr19_90sf, hr18_90sf)
+hr_18_19diff <- st_union(hr2018_2019_diff, hr2019_2018_diff)
 
 
-plot(st_coordinates(kdepoly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
-     type = "n", asp = 1)
-plot(kdepoly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
-plot(kdepoly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
-plot(kdepoly_18_19diff, border = "purple", add = TRUE)
 
-cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
-    "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
-    "Difference Area:    ", sf::st_area(poly_18_19diff), "m^2 \n")
-
-
+cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
+    "Area of 2019: ", sf::st_area(hr19_90sf), "m^2 \n",
+    "Difference Area:    ", sf::st_area(hr_18_19diff), "m^2 \n")
 ```
+
+
+```{r}
+plot(st_coordinates(hr18_90sf), xlab = "Easting [m]", ylab = "Northing [m]", 
+     type = "n", asp = 1)
+plot(hr18_90sf, col =alpha("cyan", 0.3), border = NA, add = TRUE)
+plot(hr19_90sf, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
+plot(hr_18_19diff, border = "purple", add = TRUE, col=NA)
+```
+
 
 
 KOMMENTAR

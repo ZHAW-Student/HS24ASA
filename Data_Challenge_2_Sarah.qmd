@@ -61,9 +61,9 @@ edges<-biking_network |>
  
 edges<-dplyr::mutate(edges, testloop = (from - to))
  
-ggplot() +
-  geom_sf(data=biking_network |>  activate(edges) |>  st_as_sf(), aes(color=highway), size=2) + 
-  geom_sf(data=biking_network |>  activate(nodes) |>  st_as_sf())
+# ggplot() +
+#   geom_sf(data=biking_network |>  activate(edges) |>  st_as_sf(), aes(color=highway), size=2) + 
+#   geom_sf(data=biking_network |>  activate(nodes) |>  st_as_sf())
 ```
 
 
@@ -114,11 +114,48 @@ square_grid<- sf::st_make_grid(bbox, what = "polygons",
 * **Task 3:** Have you ever cycled in Zürich? Compute and plot the optimal path from the starting point to the endpoint of a cycling route you are familiar with. You can use the biking_network.rds provided in Session 06, or adapt the CycleNetwork.rmd to create your own network. Compare the route inferred by the network with your preferred route.
 
 
-I have never cycled in Zürich as I do not live here and consider lots of spaces kind of dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But i know the area from Wiedikon to the main station pretty well and can try to see whether i can try to give a feedback to this.
+I have never cycled in Zürich as I do not live here and consider lots of spaces kind of dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But i know the area from Wiedikon to the main station pretty well and can try to give a feedback to this.
 ```{r}
+wiedikon_bhf <- st_point(c(2681935.48, 1247264.46)) |> 
+  st_sfc(crs = 2056)
 
+EuropaalleeHB <- st_point(c(2682882.50, 1248029.09)) |> 
+  st_sfc(crs = 2056)
+
+wiedikon_bhf_vertex <- st_nearest_feature(wiedikon_bhf, nodes)
+
+EuropaalleeHB_vertex <- st_nearest_feature(EuropaalleeHB, nodes)
+
+heigo_path <- shortest_paths(
+  graph = biking_network,
+  from = wiedikon_bhf_vertex,
+  to = EuropaalleeHB_vertex,
+  output = 'both')
+
+# Turn the shortest path into a graph
+heigo_graph <- biking_network |> 
+    subgraph.edges(eids = heigo_path$epath |>  unlist(), 
+                   delete.vertices = FALSE) |> 
+    as_sfnetwork(node_key = "id")
 
 ```
+
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = heigo_graph |>  activate(edges) |> st_as_sf(), lwd = 1, col = 'orange') + 
+  geom_sf(data = heigo_graph |> activate(nodes) |> 
+          filter(id %in% c(wiedikon_bhf_vertex, EuropaalleeHB_vertex)) 
+          |> as_tibble() |> st_as_sf(), size = 2, col = 'orange') +
+  
+  # Add labels for the origin and destination
+  geom_sf_text(data = heigo_graph |> activate(nodes) |> 
+                 filter(id %in% c(wiedikon_bhf_vertex, EuropaalleeHB_vertex)) 
+          |> as_tibble() |> st_as_sf(), aes(label = long_name),  nudge_x = 1500, size = 3) + 
+  # Remove axis titles
+  theme_void()
+```
+
 
 
 * **Task 4:** In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
