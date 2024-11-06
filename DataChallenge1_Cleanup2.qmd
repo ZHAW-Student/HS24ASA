@@ -254,7 +254,6 @@ bike_accidents2021 <- st_coordinates(bike_accidents |>
 ::: {.panel-tabset .nav-pills}
 ## Reachability Plot 2018 data
 
-######Anpassung Werte basierend auf Daten von 2019 -> Saskia was suchen, dass Sinn ergibt und au 8er übertragen
 ```{r, echo=FALSE}
 # clustering with optics
 ops_reach2018 <- optics(bike_accidents2018)
@@ -431,7 +430,6 @@ ggplot() +
 ```
 
 # Clusters of bike accidents 2019
-#####Fehler Saskia fixen. Info von Sarah: CLuster 7 kann nicht geplottet werden, da es nur ein punkt ist
 ```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -509,8 +507,9 @@ KOMMENTAR
 
 ## Task 12
 Choose any two years from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
-####
+
 KOMMENTAR 
+
 ```{r}
  # get sf data for bike accidents in 2018 and 2019
 bike_accidents_sf <- bike_accidents|> 
@@ -709,17 +708,86 @@ KOMMENTAR
 
 * a. all bicycle accidents (2011 - 2021) 
 
+::: {.panel-tabset .nav-pills}
+## L-Function
+
+```{r, echo=FALSE}
+# Create a ppp object 
+bike_accidents_coords <- sf::st_coordinates(bike_accidents_sf)
+win <- as.owin(st_bbox(bike_accidents_sf))
+bike_accidents_ppp <- spatstat.geom::ppp(x = bike_accidents_coords[,1], y =  bike_accidents_coords[,2],
+                                         window = win, unitname = c("meter", "meters"))
+
+# Generate L-function with envelope() function.
+bike_accidents_enve <- spatstat.explore::envelope(bike_accidents_ppp, fun = Lest, nsim = 100, 
+                                         correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents_enve, main = "L-function of bike acccident points, with envelope")
+```
+
+## MAD & DCLF Test
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+
+```
+:::
+
 * b. bicycle accidents for one of the years selected in Task 6 
 
+::: {.panel-tabset .nav-pills}
+## L-Function 2018 data
+```{r, echo=FALSE}
+# Create a ppp object 
+bike_accidents2018_coords <- sf::st_coordinates(bike_accidents_2018_sf)
+win18 <- as.owin(st_bbox(bike_accidents_2018_sf))
+bike_accidents2018_ppp <- spatstat.geom::ppp(x = bike_accidents2018_coords[,1], y =  bike_accidents2018_coords[,2],
+                                         window = win18, unitname = c("meter", "meters"))
+
+# Generate L-function
+bike_accidents2018_enve <- spatstat.explore::envelope(bike_accidents2018_ppp, fun = Lest, nsim = 100, 
+                                         correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents2018_enve, main = "L-function of 2018 bike acccident points, with envelope")
+
+```
+
+## MAD & DCLF Test 2018 data
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+
+```
+
+## L-Function 2019 data
+```{r, echo=FALSE}
+# Create a ppp object 
+bike_accidents2019_coords <- sf::st_coordinates(bike_accidents_2019_sf)
+win19 <- as.owin(st_bbox(bike_accidents_2019_sf))
+bike_accidents2019_ppp <- spatstat.geom::ppp(x = bike_accidents2019_coords[,1], y =  bike_accidents2019_coords[,2],
+                                         window = win19, unitname = c("meter", "meters"))
+
+# Generate L-function
+bike_accidents2019_enve <- spatstat.explore::envelope(bike_accidents2019_ppp, fun = Lest, nsim = 100, 
+                                         correction = "Ripley", verbose = FALSE)
+# Plot 
+plot(bike_accidents2019_enve, main = "L-function of 2019 bike acccident points, with envelope")
+```
+
+## MAD & DCLF Test 2019 data
+```{r, echo=FALSE}
+# We also apply the MAD test
+spatstat.explore::mad.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+```
+
+::: 
+
 * c. bicycle accidents for only the cluster points of the year selected in (b)
 
 Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
-
-
-
-* c. bicycle accidents for only the cluster points of the year selected in (b)
-Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
-
 
 ##intersection
 ```{r}
@@ -759,7 +827,7 @@ bike_accidents2018_ppp_145 <- spatstat.geom::ppp(x = bike_accidents2018_coords14
 # Generate L-function
 bike_accidents2018_enve145 <- spatstat.explore::envelope(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
 # Plot 
-plot(bike_accidents2018_enve145, main = "L-function of 2018 bike acccident points, with envelope for the districts 1,4 and 5")
+plot(bike_accidents2018_enve145, main = "L-function of 2018 bike acccident points\n with envelope for the districts 1,4 and 5")
 
 ```
 
@@ -776,6 +844,61 @@ KOMMENTAR
 ## Task 16
 Now choose the following two pairs of years, 2018 & 2019, as well as 2018 & 2021, and compute the cross-X function, where “X” stands for the function(s) you used in Task 15. Use the AccidentYear as the marks to produce a marked point pattern.
 
+::: {.panel-tabset .nav-pills}
+
+## marked point pattern
+```{r, echo=FALSE}
+# reate a marked ppp object
+marks_bike_accidents_ppp <- spatstat.geom::setmarks(bike_accidents_ppp, factor(bike_accidents_sf$AccidentYear))
+
+bike_accidents181921 <- bike_accidents_sf|> 
+  filter(bike_accidents_sf$AccidentYear %in% c("2018", "2019", "2021"))
+
+# Summary will show frequency table per Year
+summary(bike_accidents181921)
+
+ggplot() +
+  geom_sf(data = bike_accidents181921, aes(colour = AccidentYear))  +
+  coord_sf(datum = 2056) +
+  ggtitle("Marked point pattern of bike accidents 2018, 2019 and 2021") +
+  xlab("Easting [m]") + 
+  ylab("Northing [m]") +
+  theme(plot.title = element_text(face="bold"))
+```
+
+## Cross-L function 2018 and 2019
+```{r, echo=FALSE}
+acc_2018_2019_clf_env <- spatstat.explore::envelope(marks_bike_accidents_ppp, fun = Lcross, 
+                                                    i = "2018", j = "2019", nsim = 100, 
+                                                    correction = "Ripley", verbose = FALSE)
+
+# Plot it
+plot(acc_2018_2019_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 2019")
+```
+
+## Cross-L function 2018 and 2021
+```{r, echo=FALSE}
+#create ppp for 2021 data
+bike_accidents_2021_sf <- bike_accidents_sf |> 
+  filter(bike_accidents_sf$AccidentYear == 2021)
+
+# drop everything except geometry
+bike_accidents_2021_sf <- st_zm(bike_accidents_2021_sf[,22])
+
+bike_accidents2021_coords <- sf::st_coordinates(bike_accidents_2021_sf)
+win21 <- as.owin(st_bbox(bike_accidents_2021_sf))
+bike_accidents2021_ppp <- spatstat.geom::ppp(x = bike_accidents2021_coords[,1], y =  bike_accidents2021_coords[,2],
+                                         window = win21, unitname = c("meter", "meters"))
+
+
+acc_2018_2021_clf_env <- spatstat.explore::envelope(marks_bike_accidents_ppp, fun = Lcross, 
+                                                    i = "2018", j = "2021", nsim = 100, 
+                                                    correction = "Ripley", verbose = FALSE)
+
+# Plot it
+plot(acc_2018_2021_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 2021")
+```
+:::
 
 ## Task 17
 Discuss your results. Similarities and differences between the various point sets? Noteworthy spatial and/or temporal patterns? Is any difference observable in the patterns of the cross-X function in the transition to the Covid-19 pandemic? etc. etc. Note: Consider in your interpretation that the distance scale may change between years.
