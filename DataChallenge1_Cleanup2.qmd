@@ -876,7 +876,7 @@ zh_stat_zone <- sf::st_read("Session_5/zh_stat_zones.gpkg")
 
 nn_dis <- 450
 
-getisbikedata<-filter(bike_accidents_sf, AccidentYear =="2018"| AccidentYear == "2019")[,c(24,38)]
+getisbikedata<-filter(bike_accidents_sf, AccidentYear =="2018"| AccidentYear == "2019")[,c(7,24,38)]
 
 # create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
 bike_acc_nb <- spdep::dnearneigh(getisbikedata, 0, nn_dis)
@@ -906,24 +906,25 @@ tmap::tm_shape(districts) +
 var_string <- c("2018", "2019")
 variant <- c("2018", "2019")
 
+# Turn accident years into factors
+getisbikedata$AccidentYear <- as.factor(getisbikedata$AccidentYear)
+getisbikedata$AccidentSeverityCategory <- as.factor(getisbikedata$AccidentSeverityCategory)
+
 # For each variant, compute local Gi*-statistic with spdep::localG() and 
 # display as choropleth map.
 
-# Define a function that, for a given variant, computes the local Gi*-statistic 
-# with spdep::localG() and displays it as a choropleth map.
-plot_variant <- function(i, j) {
-
 # Create local Gi* stats object
 sads_lG <-
-    spdep::localG(x = as.numeric(unlist(getisbikedata[, i])), listw = bike_acc_lw)
+    spdep::localG(x <- as.numeric(as.vector(getisbikedata$AccidentSeverityCategor)), listw = bike_acc_lw)
   
   # attach Gi* statistic values to the sfc_POINT object
   s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
   tmp_sf <- bind_cols(getisbikedata, as.data.frame(s_lG))
   
   # generate map with dot symbols shaded according to Gi*-stats value
-  m <- tmap::tm_shape(cantons_bound) +
+  tmap::tm_shape(districts) +
     tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf) +
     tmap::tm_dots(
       size = 0.2,
       col = "s_lG",
@@ -931,10 +932,9 @@ sads_lG <-
       midpoint = 0,
       palette = "-RdYlBu",
       title.size = 0.2,
-      title = paste("Variant \"", variant[j], "\"", sep = "")
     ) +
     tmap::tm_layout(
-      main.title = "Gi*-statistic for comparative clause",
+      main.title = "Gi*-statistic for accident severity",
       main.title.size = 1.0,
       main.title.fontface = "bold",
       main.title.position = c("left", "top"),
@@ -943,12 +943,6 @@ sads_lG <-
       inner.margins = c(0.05, 0.05, 0.05, 0.05)
     ) +
     tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-  
-  # a tmap inside a loop needs to be *printed* explicitly; otherwise it won't show
-  # print(m)
-  
-  return(m)
-}
 
 ```
 
