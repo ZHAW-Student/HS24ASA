@@ -313,8 +313,6 @@ KOMMENTAR
 ## Task 9
 From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
 
-##da stimmt noch immer was mit dieser Intersection nicht -> Sarah
-
 ```{r , echo = FALSE}
 # add cluster info to data
 bike_acc2018_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2018, ops_reach2018$cluster)), 
@@ -874,12 +872,32 @@ From the bicycle accidents data, choose at least two relevant variables that mak
 # read data of statistical zones
 zh_stat_zone <- sf::st_read("Session_5/zh_stat_zones.gpkg")
 
-nn_dis <- 450
 
-getisbikedata<-filter(bike_accidents_sf, AccidentYear =="2018"| AccidentYear == "2019")[,c(7,24,38)]
+
+
+
+
+
+
+nn_dis <- 1500
+
+getisbikedata_df<-filter(filter(accidents_no_geom,AccidentInvolvingBicycle == "true"), AccidentYear =="2018") ##| AccidentYear == "2019"
+getisbikedata_df<-getisbikedata_df[,c(11,20,21,24)]
+
+###Create proportions for accident types
+getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
+
+getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
+
+getisbikedata_df$propdam <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with property damage", 1.0, 0.0))
+
+getisbikedata_df$fatal <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with fatalities", 1.0, 0.0))
+
+
+getisbikedata_sf<-st_as_sf(getisbikedata_df,coords = c("AccidentLocation_CHLV95_E",  "AccidentLocation_CHLV95_N"), crs=2056)
 
 # create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
-bike_acc_nb <- spdep::dnearneigh(getisbikedata, 0, nn_dis)
+bike_acc_nb <- spdep::dnearneigh(getisbikedata_sf, 0, nn_dis)# kann auch warnmeldungen generieren Warnmeldung:In spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 3 sub-graphs
 
 # convert into list with spatial weights, B = binary weight
 bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
@@ -887,15 +905,15 @@ bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
 # Create the line links from the nb object, requesting an sf object to be returned.
 # CRS needs to be set as it was carried over to the nb object.
 bike_acc_links <- 
-   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(getisbikedata), as_sf = TRUE) |>
-   sf::st_set_crs(2056)
+   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(getisbikedata_sf), as_sf = TRUE) |>
+   sf::st_set_crs(2056)#####hier haben sie keine warnmeldungIn spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 33 sub-graphs
 # 
 # # Plot the neighbor links using functions from the tmap package
 tmap::tm_shape(districts) + 
   tmap::tm_borders(col = "gray") +
   tmap::tm_shape(bike_acc_links) + 
   tmap::tm_lines(col = "red", lwd = 0.5) +
-  tmap::tm_shape(getisbikedata) +
+  tmap::tm_shape(getisbikedata_sf) +
   tmap::tm_dots(col = "black", size = 0.1) +
   tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
    
@@ -903,19 +921,101 @@ tmap::tm_shape(districts) +
 
 
 ```{r}
-var_string <- c("2018", "2019")
-variant <- c("2018", "2019")
+var_string <- c("lightinj", "severinj", "propdam","fatal")
+variant <- c("Accident with light injuries", "Accident with severe injuries","Accident with property damage", "Accident with fatalities")
 
-# Turn accident years into factors
+#Turn accident years into factors
 getisbikedata$AccidentYear <- as.factor(getisbikedata$AccidentYear)
-getisbikedata$AccidentSeverityCategory <- as.factor(getisbikedata$AccidentSeverityCategory)
 
 # For each variant, compute local Gi*-statistic with spdep::localG() and 
 # display as choropleth map.
 
 # Create local Gi* stats object
+#new
 sads_lG <-
-    spdep::localG(x <- as.numeric(as.vector(getisbikedata$AccidentSeverityCategor)), listw = bike_acc_lw)
+    spdep::localG(x = as.numeric(unlist(getisbikedata_df[, 5])), listw = bike_acc_lw)
+
+s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
+tmp_sf <- bind_cols(getisbikedata_sf, as.data.frame(s_lG))
+
+
+tmap::tm_shape(districts) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Variant \"", "Accident with light injuries", "\"", sep = "")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for accident severity",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+  
+  
+
+
+###function - does still not work
+plot_variant <- function(i, j) {
+
+# Create local Gi* stats object
+sads_lG <-
+    spdep::localG(x = as.numeric(unlist(getisbikedata_df[, i])), listw = bike_acc_lw)
+  
+# attach Gi* statistic values to the sfc_POINT object
+s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
+  tmp_sf <- bind_cols(getisbikedata_sf, as.data.frame(s_lG))
+  
+# generate map with dot symbols shaded according to Gi*-stats value
+m <- tmap::tm_shape(districts) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Variant \"", variant[j], "\"", sep = "")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for accident severity",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+  
+  # a tmap inside a loop needs to be *printed* explicitly; otherwise it won't show
+  # print(m)
+  
+  return(m)
+}
+
+
+
+
+
+##old
+sads_lG <-
+    spdep::localG(x = as.numeric(unlist(getisbikedata[, i])), listw = bike_acc_lw)
+
+sads_lG <-
+    spdep::localG(x <- as.numeric(unlist(getisbikedata$AccidentInvolvingPedestrian)), listw = bike_acc_lw)
   
   # attach Gi* statistic values to the sfc_POINT object
   s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
@@ -951,7 +1051,7 @@ sads_lG <-
 
 ### Variant "als"
 ```{r}
-plot_variant("2018", 1)
+plot_variant("Accident with light injuries", 1)
 ```
 
 ### Variant "weder"
@@ -971,7 +1071,6 @@ plot_variant("prop_v4_wan", 4)
 
 :::
 
-####Hier fehlt noch was Sarah
 
 ## Task 19
 Discuss your results. What did you find regarding the hot and cold spots in your accident count layers? How do they compare to each other across layers and across (past) methods? etc. Discuss also the influence of the parameter settings (e.g., neighbor search distance, spatial weight formation) on your results.
