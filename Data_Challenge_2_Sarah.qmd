@@ -75,7 +75,6 @@ nodes<-biking_network |>
   activate("nodes") |> 
   st_as_sf()
 
-
 nodes_cor<-st_coordinates(nodes)
 ```
 
@@ -162,10 +161,11 @@ ggplot() +
 
 • Why is it reasonable to assume that the measure you choose correlates with the amount of bike traffic?
 
+I chose the betweenness centrality as it should highlight places where bike traffic almost is forced through as they are the shortest path for many routes which should lead to more traffic in those areas.
+
 • What potential problems might arise with this measure? For example, the network contains many
 parallel paths in close proximity, which could influence measures that rely on shortest-path computations.
 
-I chose the betweenness centrality as it should highlight places where bike traffic almost is forced through as they are the shortest path for many routes which should lead to more traffic in those areas. 
 For this I assume, that cyclists do not avoid traffic hotspots, which i would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits.
 
 Potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
@@ -175,9 +175,33 @@ Potential problems are that only the shortest path does only show the optimum bu
 • Plot your chosen measure for the network.
 
 ```{r}
+biking_network <- biking_network |> 
+  activate(nodes) |>  
+  mutate(btw = betweenness(biking_network))
 
+nodes_btw<- biking_network |> 
+  activate(nodes) 
 ```
 
+
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network |> activate(edges) |> as_tibble() |> st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network |> activate(nodes) |> as_tibble() |> st_as_sf(), 
+          aes(size=btw), col = "black")+
+  theme_void()
+```
+
+```{r}
+a<-st_as_sf(nodes_btw)
+
+# leaflet() |>  addProviderTiles("Esri.WorldTopoMap", group = "Terrain")  |> 
+#  addCircleMarkers(data =a, radius = a$btw, color = "black", opacity = 1)
+#######will crash r
+```
 
 
 * **Task 5:** A new bicycle infrastructure project, the “Stadttunnel” is under construction, connecting the coordinates (8.53619°E, 47.37768°N) with (8.53783°E, 47.38024°N) beneath the station. Analyse how this project affects the network measure you selected in Task 4, and visualise the changes. Depending on when you retrieved the data from OSM, the Stadttunnel might already be included in the network or not. If you encounter difficulties removing or adding the edge, please refer to the script remove_or_add_edge.r available on OLAT.
@@ -207,6 +231,40 @@ leaflet() |>  addProviderTiles("Esri.WorldTopoMap", group = "Terrain")  |>
 ```
 
 The tunnel is already present in the dataset although it does not quite end at one of the given coordinates.
+
+```{r}
+bbox_hb <- 
+  st_sf(geom = st_sfc(st_point(c(8.5360556,  47.3798416)), 
+                      st_point(c(8.5400802, 47.3770750))), crs = 4326) |>
+  st_transform(crs = 2056) |>
+  st_bbox() |>
+  st_as_sfc()
+
+# Locate the Stadttunnel
+stadttunnel <- biking_network |> 
+  activate(edges) |>
+  st_as_sf() |>
+  filter(tunnel == 1) |>
+  filter(highway == "construction") |>
+  st_filter(bbox_hb, .predicates = st_intersects)
+
+# Use the unique from and to IDs from the previous query to remove the tunnel.
+# (Explicitly specifying from and to is not strictly necessary but clarifies our intent.)
+
+biking_network_no_stadttunnel <- biking_network |> 
+  activate(edges) |> 
+  filter(from != stadttunnel |> pull (from), 
+         to != stadttunnel |> pull (to)) 
+
+# Check if the Stadttunnel was successfully removed.
+biking_network_no_stadttunnel |> 
+  activate(edges) |>
+  st_as_sf() |>
+  filter(tunnel == 1)|>
+  filter(highway == "construction") |>
+  st_filter(bbox_hb, .predicates = st_intersects)
+```
+
 
 ```{r}
 
