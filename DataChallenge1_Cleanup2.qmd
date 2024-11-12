@@ -19,7 +19,7 @@ execute:                      # Set global options for execution of code blocks
   message: false
 ---
 # Introduction
-This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. For this work no language models like ChatGPT have been used.
+This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. For this work no language models like ChatGPT have been used (neither for the code nor the text answers). Feel free to take a look at our code as we spent quite some time struggling with it. 
 
 ## Packages
 ```{r}
@@ -95,7 +95,6 @@ acc_sever
 acc_type
 ```
 
-  
 * c. Number of accidents involving pedestrians, bicycles, and motorcycles, respectively. And combinations thereof (pedestrian AND bicycle, pedestrian AND motorcycle etc.). Are there any accidents involving all three modes (pedestrian, bicycle, motorcycle)?
   
 ```{r}
@@ -251,13 +250,12 @@ bike_accidents2021 <- st_coordinates(bike_accidents |>
   filter(AccidentYear == "2021"))
 ```
 
-::: {.panel-tabset .nav-pills}
-## Reachability Plot 2018 data
 
+## Reachability Plot 2018 data
 ```{r, echo=FALSE}
 # clustering with optics
-ops_reach2018 <- optics(bike_accidents2018)
-ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 450)
+ops_reach2018 <- optics(bike_accidents2018, minPts = 5)
+ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 500)
 ops_reach2018
 plot(ops_reach2018)
 ```
@@ -267,16 +265,11 @@ plot(ops_reach2018)
 plot(bike_accidents2018, cex = 0.4, pch = 19, col = ops_reach2018$cluster + 1, asp = 1)
 ```
 
-## Convex Cluster Hulls 2018 data
-```{r, echo=FALSE}
-hullplot(bike_accidents2018, ops_reach2018, asp = 1)
-```
-
 ## Reachability Plot 2019 data
 ```{r, echo=FALSE}
 # clustering with optics
-ops_reach2019 <- optics(bike_accidents2019)
-ops_reach2019 <- extractDBSCAN(ops_reach2019, eps_cl = 450)
+ops_reach2019 <- optics(bike_accidents2019, minPts = 5)
+ops_reach2019 <- extractDBSCAN(ops_reach2019, eps_cl = 500)
 ops_reach2019
 plot(ops_reach2019)
 ```
@@ -286,9 +279,54 @@ plot(ops_reach2019)
 plot(bike_accidents2019, cex = 0.4, pch = 19, col = ops_reach2019$cluster + 1, asp = 1)
 ```
 
+## Reachability Plot 2020 data
+```{r, echo=FALSE}
+# clustering with optics
+ops_reach2020 <- optics(bike_accidents2020, minPts = 5)
+ops_reach2020 <- extractDBSCAN(ops_reach2020, eps_cl = 500)
+ops_reach2020
+plot(ops_reach2020)
+```
+
+## clustered points 2020 data
+```{r, echo=FALSE}
+plot(bike_accidents2020, cex = 0.4, pch = 19, col = ops_reach2020$cluster + 1, asp = 1)
+```
+
+## Reachability Plot 2021 data
+```{r, echo=FALSE}
+# clustering with optics
+ops_reach2021 <- optics(bike_accidents2021, minPts = 5)
+ops_reach2021 <- extractDBSCAN(ops_reach2021, eps_cl = 500)
+ops_reach2021
+plot(ops_reach2021)
+```
+
+## clustered points 2021 data
+```{r, echo=FALSE}
+plot(bike_accidents2021, cex = 0.4, pch = 19, col = ops_reach2021$cluster + 1, asp = 1)
+```
+
+
+::: {.panel-tabset .nav-pills}
+## Convex Cluster Hulls 2018 data
+```{r, echo=FALSE}
+hullplot(bike_accidents2018, ops_reach2018, asp = 1)
+```
+
 ## Convex Cluster Hulls 2019 data
 ```{r, echo=FALSE}
 hullplot(bike_accidents2019, ops_reach2019, asp = 1)
+```
+
+## Convex Cluster Hulls 2020 data
+```{r, echo=FALSE}
+hullplot(bike_accidents2020, ops_reach2020, asp = 1)
+```
+
+## Convex Cluster Hulls 2021 data
+```{r, echo=FALSE}
+hullplot(bike_accidents2021, ops_reach2021, asp = 1)
 ```
 :::
 
@@ -320,7 +358,7 @@ bike_acc2018_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2018, ops_reach2
 bike_acc2019_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2019, ops_reach2019$cluster)), 
                               coords = c("X", "Y"), crs = 2056)
 
-summary(bike_acc2018_clus) # for 2018 data, there are 3 clusters
+summary(bike_acc2018_clus) # for 2018 data, there are 4 clusters
 summary(bike_acc2019_clus) # for 2019 data, there are 7 clusters
 
 # separate data into single clusters
@@ -331,16 +369,25 @@ bike_acc2018_c2 <- bike_acc2018_clus |>
   filter(V4 == 2)
 bike_acc2018_c3 <- bike_acc2018_clus |> 
   filter(V4 == 3)
-#bike_acc2018_c4 <- bike_acc2018_clus |> 
-  #filter(V4 == 4)
-# bike_acc2018_c5 <- bike_acc2018_clus |> 
-#   filter(V4 == 5)
-# bike_acc2018_c6 <- bike_acc2018_clus |> 
-#   filter(V4 == 6)
-# bike_acc2018_c7 <- bike_acc2018_clus |> 
-#   filter(V4 == 7)
-# bike_acc2018_c8 <- bike_acc2018_clus |> 
-#   filter(V4 == 8)
+bike_acc2018_c4 <- bike_acc2018_clus |> 
+  filter(V4 == 4)
+#  bike_acc2018_c5 <- bike_acc2018_clus |> 
+#    filter(V4 == 5)
+#  bike_acc2018_c6 <- bike_acc2018_clus |> 
+#    filter(V4 == 6)
+#  bike_acc2018_c7 <- bike_acc2018_clus |> 
+#    filter(V4 == 7)
+#  bike_acc2018_c8 <- bike_acc2018_clus |> 
+#    filter(V4 == 8)
+# bike_acc2018_c9 <- bike_acc2018_clus |> 
+#    filter(V4 == 9)
+# bike_acc2018_c10 <- bike_acc2018_clus |> 
+#    filter(V4 == 10)  
+# bike_acc2018_c11 <- bike_acc2018_clus |> 
+#    filter(V4 == 11)
+#  bike_acc2018_c12 <- bike_acc2018_clus |> 
+#    filter(V4 == 12)
+
 
 bike_acc2019_c1 <- bike_acc2019_clus |> 
   filter(V4 == 1)
@@ -357,11 +404,17 @@ bike_acc2019_c6 <- bike_acc2019_clus |>
 bike_acc2019_c7 <- bike_acc2019_clus |> 
   filter(V4 == 7)
 # bike_acc2019_c8 <- bike_acc2019_clus |> 
-#   filter(V4 == 8)
+#    filter(V4 == 8)
 # bike_acc2019_c9 <- bike_acc2019_clus |> 
-#   filter(V4 == 9)
+#    filter(V4 == 9)
 # bike_acc2019_c10 <- bike_acc2019_clus |> 
-#   filter(V4 == 10)
+#    filter(V4 == 10)
+# bike_acc2019_c11 <- bike_acc2019_clus |> 
+#    filter(V4 == 11)
+# bike_acc2019_c12 <- bike_acc2019_clus |> 
+#    filter(V4 == 12)
+# bike_acc2019_c13 <- bike_acc2019_clus |> 
+#    filter(V4 == 13)
 
 # compare thresholds
 cave_acc2018_2 <- concaveman(bike_acc2018_c1, concavity = 2, length_threshold = 0)
@@ -369,7 +422,7 @@ cave_acc2018_1 <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 
 cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0)
 ```
 ::: {.panel-tabset .nav-pills}
-# find best concavity value
+# find best concavity value -> this title does not fit
 ```{r}
 #ggplot() +
   # geom_sf(data = districts, color = "black", fill = NA) +
@@ -385,11 +438,16 @@ cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold
 bike_acc2018_c1_con <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
 bike_acc2018_c2_con <- concaveman(bike_acc2018_c2, concavity = 1, length_threshold = 0)
 bike_acc2018_c3_con <- concaveman(bike_acc2018_c3, concavity = 1, length_threshold = 0)
-#bike_acc2018_c4_con <- concaveman(bike_acc2018_c4, concavity = 1, length_threshold = 0)
-# bike_acc2018_c5_con <- concaveman(bike_acc2018_c5, concavity = 1, length_threshold = 0)
-# bike_acc2018_c6_con <- concaveman(bike_acc2018_c6, concavity = 1, length_threshold = 0)
-# bike_acc2018_c7_con <- concaveman(bike_acc2018_c7, concavity = 1, length_threshold = 0)
+bike_acc2018_c4_con <- concaveman(bike_acc2018_c4, concavity = 1, length_threshold = 0)
+#  bike_acc2018_c5_con <- concaveman(bike_acc2018_c5, concavity = 1, length_threshold = 0)
+#  bike_acc2018_c6_con <- concaveman(bike_acc2018_c6, concavity = 1, length_threshold = 0)
+#  bike_acc2018_c7_con <- concaveman(bike_acc2018_c7, concavity = 1, length_threshold = 0)
 # bike_acc2018_c8_con <- concaveman(bike_acc2018_c8, concavity = 1, length_threshold = 0)
+# bike_acc2018_c9_con <- concaveman(bike_acc2018_c9, concavity = 1, length_threshold = 0)
+# bike_acc2018_c10_con <- concaveman(bike_acc2018_c10, concavity = 1, length_threshold = 0)
+# bike_acc2018_c11_con <- concaveman(bike_acc2018_c11, concavity = 1, length_threshold = 0)
+# bike_acc2018_c12_con <- concaveman(bike_acc2018_c12, concavity = 1, length_threshold = 0)
+
 
 bike_acc2019_c1_con <- concaveman(bike_acc2019_c1, concavity = 1, length_threshold = 0)
 bike_acc2019_c2_con <- concaveman(bike_acc2019_c2, concavity = 1, length_threshold = 0)
@@ -401,6 +459,10 @@ bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_thresho
 # bike_acc2019_c8_con <- concaveman(bike_acc2019_c8, concavity = 1, length_threshold = 0)
 # bike_acc2019_c9_con <- concaveman(bike_acc2019_c9, concavity = 1, length_threshold = 0)
 # bike_acc2019_c10_con <- concaveman(bike_acc2019_c10, concavity = 1, length_threshold = 0)
+# bike_acc2019_c11_con <- concaveman(bike_acc2019_c11, concavity = 1, length_threshold = 0)
+# bike_acc2019_c12_con <- concaveman(bike_acc2019_c12, concavity = 1, length_threshold = 0)
+# bike_acc2019_c13_con <- concaveman(bike_acc2019_c13, concavity = 1, length_threshold = 0)
+
 ```
 
 # Clusters of bike accidents 2018
@@ -413,22 +475,32 @@ ggplot() +
   geom_sf(data = bike_acc2018_c2_con, color = "purple", fill = alpha("purple", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c3, color = "black", size = 0.5) +
   geom_sf(data = bike_acc2018_c3_con, color = "seagreen", fill = alpha("seagreen", alpha=0.3)) + 
-  #geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
-  #geom_sf(data = bike_acc2018_c4_con, color = "chartreuse", fill = alpha("chartreuse", alpha=0.3)) + 
-  # geom_sf(data = bike_acc2018_c5, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = alpha("blue", alpha=0.3)) + 
+  geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
+  geom_sf(data = bike_acc2018_c4_con, color = "chartreuse", fill = alpha("chartreuse", alpha=0.3)) + 
+  #  geom_sf(data = bike_acc2018_c5, color = "black", size = 0.5) +
+  #  geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = alpha("blue", alpha=0.3)) + 
   # geom_sf(data = bike_acc2018_c6, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2018_c6_con, color = "lightblue", fill = alpha("lightblue", alpha=0.3)) + 
   # geom_sf(data = bike_acc2018_c7, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2018_c7_con, color = "orange", fill = alpha("orange", alpha=0.3)) + 
   # geom_sf(data = bike_acc2018_c8, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2018_c8_con, color = "red", fill = alpha("red", alpha=0.3)) +
+  # geom_sf(data = bike_acc2018_c9, color = "black", size = 0.5) +
+  # geom_sf(data = bike_acc2018_c9_con, color = "palevioletred2", fill = alpha("palevioletred2", alpha=0.3)) +
+  # geom_sf(data = bike_acc2018_c10, color = "black", size = 0.5) +
+  # geom_sf(data = bike_acc2018_c10_con, color = "khaki2", fill = alpha("khaki2", alpha=0.3)) +
+  # geom_sf(data = bike_acc2018_c11, color = "black", size = 0.5) +
+  # geom_sf(data = bike_acc2018_c11_con, color = "darkseagreen2", fill = alpha("darkseagreen2", alpha=0.3)) +
+  # geom_sf(data = bike_acc2018_c12, color = "black", size = 0.5) +
+  # geom_sf(data = bike_acc2018_c12_con, color = "mediumspringgreen", fill = alpha("mediumspringgreen", alpha=0.3)) +
   theme_minimal() +
   coord_sf(datum = NA)
 ```
 
 # Clusters of bike accidents 2019
 ```{r}
+
+##remove clusters consisting of two points somehow
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data = bike_acc2019_c1, color = "black", size = 0.5) +
@@ -444,13 +516,19 @@ ggplot() +
   geom_sf(data = bike_acc2019_c6, color = "black", size = 0.5) +
   geom_sf(data = bike_acc2019_c6_con, color = "lightblue",  fill = alpha("lightblue", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c7, color = "black", size = 0.5) +
-  #geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = alpha("orange", alpha=0.3))  + 
+  geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = alpha("orange", alpha=0.3))  + 
   # geom_sf(data = bike_acc2019_c8, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2019_c8_con, color = "red",  fill = alpha("red", alpha=0.3)) +
   # geom_sf(data = bike_acc2019_c9, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2019_c9_con, color = "gold",  fill = alpha("gold", alpha=0.3)) + 
   # geom_sf(data = bike_acc2019_c10, color = "black", size = 0.5) +
   # geom_sf(data = bike_acc2019_c10_con, color = "magenta",  fill = alpha("magenta", alpha=0.3))+
+  # geom_sf(data = bike_acc2019_c11, color = "black", size = 0.5) +
+  # geom_sf(data = bike_acc2019_c11_con, color = "darkseagreen2", fill = alpha("darkseagreen2", alpha=0.3)) +
+  # # geom_sf(data = bike_acc2019_c12, color = "black", size = 0.5) +
+  # # geom_sf(data = bike_acc2019_c12_con, color = "mediumspringgreen", fill = alpha("mediumspringgreen", alpha=0.3)) +
+  # geom_sf(data = bike_acc2019_c13, color = "black", size = 0.5) +
+  # geom_sf(data = bike_acc2019_c13_con, color = "khaki2", fill = alpha("khaki2", alpha=0.3)) +
   theme_minimal() +
   coord_sf(datum = NA)
 ```
@@ -472,21 +550,22 @@ poly2018<-st_union(pol18)
 poly2019<-st_union(pol19)
 
 
-## compute difference
-poly2018_2019_diff <- st_difference(poly2018, poly2019)
-poly2019_2018_diff <- st_difference(poly2019, poly2018)
-poly_18_19diff <- st_union(poly2018_2019_diff, poly2019_2018_diff)
+## compute intersection and union
+poly_18_19inters<- st_intersection(poly2019, poly2018)
+poly_18_19union<- st_union(poly2019, poly2018)
 
 
 plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
 plot(poly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
 plot(poly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
-plot(poly_18_19diff, border = "purple", add = TRUE, col =NA)
 
 cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
-    "Difference Area:    ", sf::st_area(poly_18_19diff), "m^2 \n")
+    "Intersection Area: ",sf::st_area(poly_18_19inters), "m^2 \n",
+    "Union Area:", sf::st_area(poly_18_19union), "m^2 \n",
+    "Jaccard Index:", sf::st_area(poly_18_19inters)/sf::st_area(poly_18_19union), "m^2 \n")
+
 ```
 :::
 
@@ -578,11 +657,11 @@ bike_accidents_2019_sp<- as(bikes19_z, "Spatial")
 
 
 #we adapt the percentage to the percentage of all points which was included in previous clustering to define the homerange
-593+9+7#609
-583+4+17+8+4+5#621
+609+6+4+9#628
+594+12+18+8+4+5+4#645
 
-100/692*609#88.01
-100/695*621#89.35
+100/692*628#90.75
+100/695*645#92.81
 #to use a round number and try to make them more compatible we are using 90 to get a comparable area
 
 
@@ -625,21 +704,19 @@ title("", line = -0.3)
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
 
 ```{r}
-
 hr18_90sf <-st_as_sf(hr18_90)
-
 hr19_90sf <-st_as_sf(hr19_90)
 
-## compute difference
-hr2018_2019_diff <- st_difference(hr18_90sf, hr19_90sf)
-hr2019_2018_diff <- st_difference(hr19_90sf, hr18_90sf)
-hr_18_19diff <- st_union(hr2018_2019_diff, hr2019_2018_diff)
-
+## compute intersection and union
+polyhr_18_19inters<- st_intersection(hr19_90sf, hr18_90sf)
+polyhr_18_19union<- st_union(hr19_90sf, hr18_90sf)
 
 
 cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
     "Area of 2019: ", sf::st_area(hr19_90sf), "m^2 \n",
-    "Difference Area:    ", sf::st_area(hr_18_19diff), "m^2 \n")
+    "Intersection Area: ",sf::st_area(polyhr_18_19inters), "m^2 \n",
+    "Union Area:", sf::st_area(polyhr_18_19union), "m^2 \n",
+    "Jaccard Index:", sf::st_area(polyhr_18_19inters)/sf::st_area(polyhr_18_19union), "m^2 \n")
 ```
 
 
@@ -648,7 +725,6 @@ plot(st_coordinates(hr18_90sf), xlab = "Easting [m]", ylab = "Northing [m]",
      type = "n", asp = 1)
 plot(hr18_90sf, col =alpha("cyan", 0.3), border = NA, add = TRUE)
 plot(hr19_90sf, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
-plot(hr_18_19diff, border = "purple", add = TRUE, col=NA)
 ```
 
 
@@ -749,15 +825,16 @@ spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verb
 
 Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
 
+
 ##intersection
 ```{r}
-districts145<-districts[10:12,]
+districts1<-districts[12,]
 
-dist145_2018<-st_intersection(filter(bike_accidents, AccidentYear ==2018),districts145)
+dist1_2018<-st_intersection(filter(bike_accidents, AccidentYear ==2018),districts1)
 
 ggplot()+
   geom_sf(data=boundary, aes(color="white"))+
-  geom_sf(data=dist145_2018, aes(color="black"))+
+  geom_sf(data=dist1_2018, aes(color="black"))+
   theme(legend.position="none")#looks good
 
 ```
@@ -779,23 +856,23 @@ ggplot(districts)+
 ```{r, echo=FALSE}
 # Create a ppp object 
 
-bike_accidents2018_coords145 <- sf::st_coordinates(dist145_2018)
-win18_145 <- as.owin(st_bbox(dist145_2018))
-bike_accidents2018_ppp_145 <- spatstat.geom::ppp(x = bike_accidents2018_coords145[,1], y =  bike_accidents2018_coords145[,2],
-                        window = win18_145, unitname = c("meter", "meters"))
+bike_accidents2018_coords1 <- sf::st_coordinates(dist1_2018)
+win18_1 <- as.owin(st_bbox(dist1_2018))
+bike_accidents2018_ppp_1 <- spatstat.geom::ppp(x = bike_accidents2018_coords1[,1], y =  bike_accidents2018_coords1[,2],
+                        window = win18_1, unitname = c("meter", "meters"))
 
 # Generate L-function
-bike_accidents2018_enve145 <- spatstat.explore::envelope(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
+bike_accidents2018_enve1 <- spatstat.explore::envelope(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
 # Plot 
-plot(bike_accidents2018_enve145, main = "L-function of 2018 bike acccident points\n with envelope for the districts 1,4 and 5")
+plot(bike_accidents2018_enve1, main = "L-function of 2018 bike acccident points\n with envelope for district 1")
 
 ```
 
 ## MAD & DCLF Test 2018 data
 ```{r, echo=FALSE}
 # We also apply the MAD test
-spatstat.explore::mad.test(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, verbose = FALSE)
-spatstat.explore::dclf.test(bike_accidents2018_ppp_145, fun = Lest, nsim = 100, verbose = TRUE)
+spatstat.explore::mad.test(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, verbose = FALSE)
+spatstat.explore::dclf.test(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, verbose = TRUE)
 
 ```
 :::
