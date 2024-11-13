@@ -306,3 +306,26 @@ ggplot() +
 :::
 
 This project does not really affect the betweenness centrality in the city center.
+
+
+#Third part: Spatial Autocorrelation
+
+* **Task 6:**  Determine the number of bike accidents occurring in each grid cell. Use the function st_contains if your grid is made up of polygons, or st_nearest_feature if it consists of points. Plot the Getis-Ord Gi statistic to visualise accident counts per cell. Assess whether the results are significant and identify where accident hot spots are located. If you recognise the locations, consider whether the hot spots share common characteristics or features.
+
+```{r}
+
+```
+
+
+* **Task 7:** In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify
+your definition of “nearby.”
+
+```{r}
+
+```
+
+
+* **Task 8:** Also, for a future task, count the number of accidents along each network edge.
+
+
+#Fourth part: Spatial Autocorrelation
