@@ -19,10 +19,10 @@ execute:                      # Set global options for execution of code blocks
   message: false
 ---
 # Introduction
-This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. For this work no language models like ChatGPT have been used (neither for the code nor the text answers). Feel free to take a look at our code as we spent quite some time struggling with it. 
+This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. For this work no language models like ChatGPT have been used (neither for the code nor the text answers). We are aware about you not grading the code but still invite you to take a look at it, as we spent quite some time struggling with it. 
 
-## Packages
 ```{r}
+#Packages
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -133,7 +133,7 @@ Select only those accidents that involved a bicycle. **From now on, and for the 
 
 ::: {.panel-tabset .nav-pills}
 
-# All bike accidents
+# all bike accidents
 ```{r, echo=FALSE}
 bike_accidents <- accidents |> 
   filter(AccidentInvolvingBicycle == "true")
@@ -153,7 +153,7 @@ ggplot() +
                                           "severe injuries",
                                           "light injuries",
                                           "property damage"))
-#Version mit alpha
+#Version with alpha
 # ggplot() +
 #   geom_sf(data = bike_accidents, mapping = aes(color =AccidentSeverityCategory)) +
 #   geom_sf(data = districts, color = "black", fill = NA, ) +
@@ -168,7 +168,7 @@ ggplot() +
 #                                           "light injuries",
 #                                           "property damage"))
 # 
-# #Version mit small multiples
+# #Version with small multiples
 # ggplot() +
 #   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
 #   geom_sf(data = districts, color = "black", fill = NA) +
@@ -240,6 +240,8 @@ KOMMENTAR
 ## Task 6
 From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
 
+
+####Hier haben wir ne frage zur reihenfolge
 ```{r, echo=FALSE}
 bike_accidents2018 <- st_coordinates(bike_accidents |> 
   filter(AccidentYear == "2018"))
@@ -250,14 +252,32 @@ bike_accidents2020 <- st_coordinates(bike_accidents |>
 bike_accidents2021 <- st_coordinates(bike_accidents |> 
   filter(AccidentYear == "2021"))
 ```
-::: {.panel-tabset .nav-pills}
 
-## Reachability Plot 2018 data
 ```{r, echo=FALSE}
-# clustering with optics
+# 2018 clustering with optics
 ops_reach2018 <- optics(bike_accidents2018, minPts = 5)
 ops_reach2018 <- extractDBSCAN(ops_reach2018, eps_cl = 500)
-ops_reach2018
+# ops_reach2018
+
+# 2019 clustering with optics
+ops_reach2019 <- optics(bike_accidents2019, minPts = 5)
+ops_reach2019 <- extractDBSCAN(ops_reach2019, eps_cl = 500)
+# ops_reach2019
+
+# 2020 clustering with optics
+ops_reach2020 <- optics(bike_accidents2020, minPts = 5)
+ops_reach2020 <- extractDBSCAN(ops_reach2020, eps_cl = 500)
+# ops_reach2020
+
+# 2021 clustering with optics
+ops_reach2021 <- optics(bike_accidents2021, minPts = 5)
+ops_reach2021 <- extractDBSCAN(ops_reach2021, eps_cl = 500)
+# ops_reach2021
+```
+
+
+## reachability plot 2018 data
+```{r, echo=FALSE}
 plot(ops_reach2018)
 ```
 
@@ -266,12 +286,8 @@ plot(ops_reach2018)
 plot(bike_accidents2018, cex = 0.4, pch = 19, col = ops_reach2018$cluster + 1, asp = 1)
 ```
 
-## Reachability Plot 2019 data
+## reachability plot 2019 data
 ```{r, echo=FALSE}
-# clustering with optics
-ops_reach2019 <- optics(bike_accidents2019, minPts = 5)
-ops_reach2019 <- extractDBSCAN(ops_reach2019, eps_cl = 500)
-ops_reach2019
 plot(ops_reach2019)
 ```
 
@@ -280,12 +296,8 @@ plot(ops_reach2019)
 plot(bike_accidents2019, cex = 0.4, pch = 19, col = ops_reach2019$cluster + 1, asp = 1)
 ```
 
-## Reachability Plot 2020 data
+## reachability Plot 2020 data
 ```{r, echo=FALSE}
-# clustering with optics
-ops_reach2020 <- optics(bike_accidents2020, minPts = 5)
-ops_reach2020 <- extractDBSCAN(ops_reach2020, eps_cl = 500)
-ops_reach2020
 plot(ops_reach2020)
 ```
 
@@ -294,12 +306,8 @@ plot(ops_reach2020)
 plot(bike_accidents2020, cex = 0.4, pch = 19, col = ops_reach2020$cluster + 1, asp = 1)
 ```
 
-## Reachability Plot 2021 data
+## reachability plot 2021 data
 ```{r, echo=FALSE}
-# clustering with optics
-ops_reach2021 <- optics(bike_accidents2021, minPts = 5)
-ops_reach2021 <- extractDBSCAN(ops_reach2021, eps_cl = 500)
-ops_reach2021
 plot(ops_reach2021)
 ```
 
@@ -307,27 +315,26 @@ plot(ops_reach2021)
 ```{r, echo=FALSE}
 plot(bike_accidents2021, cex = 0.4, pch = 19, col = ops_reach2021$cluster + 1, asp = 1)
 ```
-:::
 
 ::: {.panel-tabset .nav-pills}
-## Convex Cluster Hulls 2018 data
+## convex cluster hulls 2018 data
 ```{r, echo=FALSE}
-hullplot(bike_accidents2018, ops_reach2018, asp = 1)
+hullplot(bike_accidents2018[,c(1,2)], ops_reach2018, asp = 1, main = NA)
 ```
 
-## Convex Cluster Hulls 2019 data
+## convex cluster hulls 2019 data
 ```{r, echo=FALSE}
-hullplot(bike_accidents2019, ops_reach2019, asp = 1)
+hullplot(bike_accidents2019[,c(1,2)], ops_reach2019, asp = 1, main = NA)
 ```
 
-## Convex Cluster Hulls 2020 data
+## convex cluster hulls 2020 data
 ```{r, echo=FALSE}
-hullplot(bike_accidents2020, ops_reach2020, asp = 1)
+hullplot(bike_accidents2020[,c(1,2)], ops_reach2020, asp = 1, main = NA)
 ```
 
-## Convex Cluster Hulls 2021 data
+## convex cluster hulls 2021 data
 ```{r, echo=FALSE}
-hullplot(bike_accidents2021, ops_reach2021, asp = 1)
+hullplot(bike_accidents2021[,c(1,2)], ops_reach2021, asp = 1, main = NA)
 ```
 :::
 
@@ -359,8 +366,8 @@ bike_acc2018_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2018, ops_reach2
 bike_acc2019_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2019, ops_reach2019$cluster)), 
                               coords = c("X", "Y"), crs = 2056)
 
-summary(bike_acc2018_clus) # for 2018 data, there are 4 clusters
-summary(bike_acc2019_clus) # for 2019 data, there are 7 clusters
+# summary(bike_acc2018_clus) # for 2018 data, there are 4 clusters
+# summary(bike_acc2019_clus) # for 2019 data, there are 7 clusters
 
 # separate data into single clusters
 
@@ -417,14 +424,16 @@ bike_acc2019_c7 <- bike_acc2019_clus |>
 # bike_acc2019_c13 <- bike_acc2019_clus |> 
 #    filter(V4 == 13)
 
+
+```
+
+```{r}
 # compare thresholds
 cave_acc2018_2 <- concaveman(bike_acc2018_c1, concavity = 2, length_threshold = 0)
 cave_acc2018_1 <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
-cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0)
-```
+cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0) 
 
-# find best concavity value -> this title does not fit
-```{r}
+#Compare concavity values
 #ggplot() +
   # geom_sf(data = districts, color = "black", fill = NA) +
   # geom_sf(data=bike_acc2018_c1, size = 0.5) +
@@ -436,6 +445,10 @@ cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold
   # theme_minimal()
 
 # 1 seems best value for concavity
+```
+
+
+```{r}
 bike_acc2018_c1_con <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
 bike_acc2018_c2_con <- concaveman(bike_acc2018_c2, concavity = 1, length_threshold = 0)
 bike_acc2018_c3_con <- concaveman(bike_acc2018_c3, concavity = 1, length_threshold = 0)
@@ -466,7 +479,7 @@ bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_thresho
 
 ```
 ::: {.panel-tabset .nav-pills}
-# Clusters of bike accidents 2018
+# clusters of bike accidents 2018
 ```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -498,7 +511,7 @@ ggplot() +
   coord_sf(datum = NA)
 ```
 
-# Clusters of bike accidents 2019
+# clusters of bike accidents 2019
 ```{r}
 
 ##remove clusters consisting of two points somehow
@@ -534,7 +547,7 @@ ggplot() +
   coord_sf(datum = NA)
 ```
 
-# Jaccard Index 
+#overlap of areas 
 ```{r}
 # Compute the Jaccard Index
 ## unify single polygons from 2018 and 2019
@@ -560,14 +573,20 @@ plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]",
      type = "n", asp = 1)
 plot(poly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
 plot(poly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
-
-cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
-    "Area of 2019: ", sf::st_area(poly2019), "m^2 \n",
-    "Intersection Area: ",sf::st_area(poly_18_19inters), "m^2 \n",
-    "Union Area:", sf::st_area(poly_18_19union), "m^2 \n",
-    "Jaccard Index:", sf::st_area(poly_18_19inters)/sf::st_area(poly_18_19union), "m^2 \n")
+legend("bottomleft", legend=c("area 2018", "area 2019"),
+       fill=c("cyan", "magenta"), cex=0.8)
 
 ```
+
+#Jaccard Index
+```{r}
+cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
+    "Area of 2019:", sf::st_area(poly2019), "m^2 \n",
+    "Intersection Area:",sf::st_area(poly_18_19inters), "m^2 \n",
+    "Union Area:", sf::st_area(poly_18_19union), "m^2 \n",
+    "Jaccard Index:", sf::st_area(poly_18_19inters)/sf::st_area(poly_18_19union),  "\n")
+```
+
 :::
 
 KOMMENTAR
@@ -613,9 +632,9 @@ bike_acc2019_coords <- bike_acc2019_coords[,-3]
 
 ```
 
-## Testing for normal distribution 
 
 ```{r}
+## Testing for normal distribution 
 # polygon if an sfc/sf object of type POLYGON was used.
 win_bike_18 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2018_sf))
 bike_18_ppp <- spatstat.geom::ppp(x = bike_acc2018_coords[,1], y = bike_acc2018_coords[,2], window = win_bike_18)
@@ -627,16 +646,16 @@ win_bike_19 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2019_sf))
 bike_19_ppp <- spatstat.geom::ppp(x = bike_acc2019_coords[,1], y = bike_acc2019_coords[,2], window = win_bike_19)
 
 teststats_19 <- quadrat.test(bike_19_ppp, nx = 10, ny = 10)
-teststats_19
 
 ```
+
 ::: {.panel-tabset .nav-pills}
-#Test for normal distribution 2018
+##Test for normal distribution 2018
 ```{r}
 teststats_18
 ```
 
-#Test for normal distribution 2019
+##Test for normal distribution 2019
 ```{r}
 teststats_19
 ```
@@ -645,7 +664,6 @@ teststats_19
 
 
 ```{r}
-
 bike_accidents_2018_sp <- as(bike_accidents_2018_sf, "Spatial")
 bike_accidents_2019_sp <- as(bike_accidents_2019_sf, "Spatial")
 
@@ -658,11 +676,11 @@ bike_accidents_2019_sp<- as(bikes19_z, "Spatial")
 
 
 #we adapt the percentage to the percentage of all points which was included in previous clustering to define the homerange
-609+6+4+9#628
-594+12+18+8+4+5+4#645
-
-100/692*628#90.75
-100/695*645#92.81
+# 609+6+4+9#628
+# 594+12+18+8+4+5+4#645
+# 
+# 100/692*628#90.75
+# 100/695*645#92.81
 #to use a round number and try to make them more compatible we are using 90 to get a comparable area
 
 
@@ -677,29 +695,48 @@ hr19_90 <- adehabitatHR::getverticeshr(ud19, percent = 90)
 
 ```
 
+###Generating KDE
+
+
 
 ```{r}
+xmin19 <- min(ud19$ZH@coords[,1])
+xmax19 <- max(ud19$ZH@coords[,1])
+ymin19 <- min(ud19$ZH@coords[,2])
+ymax19 <- max(ud19$ZH@coords[,2])
 
+xmin18 <- min(ud18$ZH@coords[,1])
+xmax18 <- max(ud18$ZH@coords[,1])
+ymin18 <- min(ud18$ZH@coords[,2])
+ymax18 <- max(ud18$ZH@coords[,2])
 
+```
+
+::: {.panel-tabset .nav-pills}
+##Generating KDE for 2018 data -> sieht bei uns einfach scheisse aus
+```{r}
 graphics::image(ud18, xlab = "x [m]", ylab = "y [m]",
                 col = hcl.colors(200, palette = "heat 2", rev = TRUE))
-graphics::image(ud19, xlab = "x [m]", ylab = "y [m]",
-                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
-
-
-xmin <- min(ud19$ZH@coords[,1])
-xmax <- max(ud19$ZH@coords[,1])
-ymin <- min(ud19$ZH@coords[,2])
-ymax <- max(ud19$ZH@coords[,2])
-
 plot(hr18_90, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
-plot(hr19_90, lty = 1, lwd = 2, border = "blue", add = TRUE, axes = FALSE)
 axis(1)
-axis(2, pos = xmin - 100)
-text(xmin - 150, ymin + (ymax - ymin) / 2, "y [m]", 
+axis(2, pos = xmin18 - 10)
+text(xmin18 - 15, ymin18 + (ymax18 - ymin18) / 2, "y [m]", 
      adj = c(NA, -4), srt = 90)
 title("", line = -0.3)
 ```
+
+##Generating KDE for 2018 data -> sieht bei uns einfach scheisse aus
+```{r}
+graphics::image(ud19, xlab = "x [m]", ylab = "y [m]",
+                col = hcl.colors(200, palette = "heat 2", rev = TRUE))
+plot(hr19_90, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
+axis(1)
+axis(2, pos = xmin19 - 10)
+text(xmin19 - 15, ymin19 + (ymax19 - ymin19) / 2, "y [m]", 
+     adj = c(NA, -4), srt = 90)
+title("", line = -0.3)
+```
+:::
 
 ## Task 13
 Compute the “volume of intersection” (“VI”) between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the adehabitatHR package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
@@ -713,22 +750,31 @@ polyhr_18_19inters<- st_intersection(hr19_90sf, hr18_90sf)
 polyhr_18_19union<- st_union(hr19_90sf, hr18_90sf)
 
 
-cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
-    "Area of 2019: ", sf::st_area(hr19_90sf), "m^2 \n",
-    "Intersection Area: ",sf::st_area(polyhr_18_19inters), "m^2 \n",
-    "Union Area:", sf::st_area(polyhr_18_19union), "m^2 \n",
-    "Jaccard Index:", sf::st_area(polyhr_18_19inters)/sf::st_area(polyhr_18_19union), "m^2 \n")
+
 ```
 
-
+::: {.panel-tabset .nav-pills}
+#overlap of areas 
 ```{r}
 plot(st_coordinates(hr18_90sf), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
 plot(hr18_90sf, col =alpha("cyan", 0.3), border = NA, add = TRUE)
 plot(hr19_90sf, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
+legend("bottomleft", legend=c("KDE area 2018", "KDE area 2019"),
+       fill=c("cyan", "magenta"), cex=0.8)
+```
+
+#Jaccard Index
+```{r}
+cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
+    "Area of 2019: ", sf::st_area(hr19_90sf), "m^2 \n",
+    "Intersection Area: ",sf::st_area(polyhr_18_19inters), "m^2 \n",
+    "Union Area:", sf::st_area(polyhr_18_19union), "m^2 \n",
+    "Jaccard Index:", sf::st_area(polyhr_18_19inters)/sf::st_area(polyhr_18_19union), "\n")
 ```
 
 
+:::
 
 KOMMENTAR
 
@@ -746,8 +792,7 @@ KOMMENTAR
 * a. all bicycle accidents (2011 - 2021) 
 
 ::: {.panel-tabset .nav-pills}
-## L-Function
-
+## L-Function with envelope
 ```{r, echo=FALSE}
 # Create a ppp object 
 bike_accidents_coords <- sf::st_coordinates(bike_accidents_sf)
@@ -759,7 +804,7 @@ bike_accidents_ppp <- spatstat.geom::ppp(x = bike_accidents_coords[,1], y =  bik
 bike_accidents_enve <- spatstat.explore::envelope(bike_accidents_ppp, fun = Lest, nsim = 100, 
                                          correction = "Ripley", verbose = FALSE)
 # Plot 
-plot(bike_accidents_enve, main = "L-function of bike acccident points, with envelope")
+plot(bike_accidents_enve, main = "")
 ```
 
 ## MAD & DCLF Test
@@ -773,8 +818,10 @@ spatstat.explore::dclf.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose 
 
 * b. bicycle accidents for one of the years selected in Task 6 
 
+##hier haben wir ein Jahr zu viel, vorschlag 2019 raus
+
 ::: {.panel-tabset .nav-pills}
-## L-Function 2018 data
+## L-Function 2018 data, with envelope
 ```{r, echo=FALSE}
 # Create a ppp object 
 bike_accidents2018_coords <- sf::st_coordinates(bike_accidents_2018_sf)
@@ -786,7 +833,7 @@ bike_accidents2018_ppp <- spatstat.geom::ppp(x = bike_accidents2018_coords[,1], 
 bike_accidents2018_enve <- spatstat.explore::envelope(bike_accidents2018_ppp, fun = Lest, nsim = 100, 
                                          correction = "Ripley", verbose = FALSE)
 # Plot 
-plot(bike_accidents2018_enve, main = "L-function of 2018 bike acccident points, with envelope")
+plot(bike_accidents2018_enve, main = "")
 
 ```
 
@@ -798,7 +845,7 @@ spatstat.explore::dclf.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verb
 
 ```
 
-## L-Function 2019 data
+## L-Function 2019 data, with envelope
 ```{r, echo=FALSE}
 # Create a ppp object 
 bike_accidents2019_coords <- sf::st_coordinates(bike_accidents_2019_sf)
@@ -810,7 +857,7 @@ bike_accidents2019_ppp <- spatstat.geom::ppp(x = bike_accidents2019_coords[,1], 
 bike_accidents2019_enve <- spatstat.explore::envelope(bike_accidents2019_ppp, fun = Lest, nsim = 100, 
                                          correction = "Ripley", verbose = FALSE)
 # Plot 
-plot(bike_accidents2019_enve, main = "L-function of 2019 bike acccident points, with envelope")
+plot(bike_accidents2019_enve, main = "")
 ```
 
 ## MAD & DCLF Test 2019 data
@@ -827,33 +874,34 @@ spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verb
 Restrict your analysis to the “inner city” and use the same window for all point sets. It’s up to you to define the extent of the “inner city” and explain/justify what that means in terms of this data challenge.
 
 
-##intersection
 ```{r}
+#Intersection
 districts1<-districts[12,]
 
 dist1_2018<-st_intersection(filter(bike_accidents, AccidentYear ==2018),districts1)
-
-ggplot()+
-  geom_sf(data=boundary, aes(color="white"))+
-  geom_sf(data=dist1_2018, aes(color="black"))+
-  theme(legend.position="none")#looks good
+# 
+# ggplot()+
+#   geom_sf(data=boundary, aes(color="white"))+
+#   geom_sf(data=dist1_2018, aes(color="black"))+
+#   theme(legend.position="none")#looks good
 
 ```
 
+
+```{r, echo=FALSE}
+## Choosing a subset of districts
+# ggplot(districts)+
+#   geom_sf(aes(fill=KNR))+
+#   geom_sf_label(aes(label = KNAME))+
+#   theme_minimal() +
+#   coord_sf(datum = NA)+
+#   xlab("")+
+#   ylab("")
+```
 
 ::: {.panel-tabset .nav-pills}
-## Choosing a subset of districts
-```{r, echo=FALSE}
-ggplot(districts)+
-  geom_sf(aes(fill=KNR))+
-  geom_sf_label(aes(label = KNAME))+
-  theme_minimal() +
-  coord_sf(datum = NA)+
-  xlab("")+
-  ylab("")
-```
 
-## L-Function 2018 data
+## L-Function 2018 data, with envelope for district 1
 ```{r, echo=FALSE}
 # Create a ppp object 
 
@@ -865,7 +913,7 @@ bike_accidents2018_ppp_1 <- spatstat.geom::ppp(x = bike_accidents2018_coords1[,1
 # Generate L-function
 bike_accidents2018_enve1 <- spatstat.explore::envelope(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
 # Plot 
-plot(bike_accidents2018_enve1, main = "L-function of 2018 bike acccident points\n with envelope for district 1")
+plot(bike_accidents2018_enve1, main = "")
 
 ```
 
@@ -897,24 +945,24 @@ bike_accidents181921 <- bike_accidents_sf|>
 
 ggplot() +
   geom_sf(data = bike_accidents181921, aes(colour = AccidentYear))  +
-  coord_sf(datum = 2056) +
-  ggtitle("Marked point pattern of bike accidents 2018, 2019 and 2021") +
-  xlab("Easting [m]") + 
-  ylab("Northing [m]") +
-  theme(plot.title = element_text(face="bold"))
+  geom_sf(data = districts, color = "black", fill = NA) +
+  coord_sf(datum = NA)+
+  theme_minimal()+
+  guides(fill=guide_legend(title="Accident year"))
+  
 ```
 
-## Cross-L function 2018 and 2019
+## Cross-L-function of bike accidents 2018 vs. 2019
 ```{r, echo=FALSE}
 acc_2018_2019_clf_env <- spatstat.explore::envelope(marks_bike_accidents_ppp, fun = Lcross, 
                                                     i = "2018", j = "2019", nsim = 100, 
                                                     correction = "Ripley", verbose = FALSE)
 
 # Plot it
-plot(acc_2018_2019_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 2019")
+plot(acc_2018_2019_clf_env, main = "")
 ```
 
-## Cross-L function 2018 and 2021
+## Cross-L-function of bike accidents 2018 vs. 2021
 ```{r, echo=FALSE}
 #create ppp for 2021 data
 bike_accidents_2021_sf <- bike_accidents_sf |> 
@@ -934,7 +982,7 @@ acc_2018_2021_clf_env <- spatstat.explore::envelope(marks_bike_accidents_ppp, fu
                                                     correction = "Ripley", verbose = FALSE)
 
 # Plot it
-plot(acc_2018_2021_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 2021")
+plot(acc_2018_2021_clf_env, main = "")
 ```
 :::
 
@@ -1026,15 +1074,11 @@ tmap::tm_shape(districts) +
   tmap::tm_shape(acc_per_zentro) +
   tmap::tm_dots(col = "black", size = 0.1) +
   tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-
-
-
-   
 ```
 
 ::: {.panel-tabset .nav-pills}
 
-### light injuries
+### Gi*-statistic for light injuries
 ```{r}
 sads_lG_light <-
     spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 11])), listw = bike_acc_lw)
@@ -1056,7 +1100,6 @@ tmap::tm_shape(zh_stat_zone_sf) +
       title = paste("Deviation")
     ) +
     tmap::tm_layout(
-      main.title = "Gi*-statistic for light accidents",
       main.title.size = 1.0,
       main.title.fontface = "bold",
       main.title.position = c("left", "top"),
@@ -1067,7 +1110,7 @@ tmap::tm_shape(zh_stat_zone_sf) +
     tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
 ```
 
-### severe injuries
+### Gi*-statistic for severe injuries
 ```{r}
 sads_lG_severe <-
     spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 12])), listw = bike_acc_lw)
@@ -1089,7 +1132,6 @@ tmap::tm_shape(zh_stat_zone_sf) +
       title = paste("Deviation")
     ) +
     tmap::tm_layout(
-      main.title = "Gi*-statistic for severe accidents",
       main.title.size = 1.0,
       main.title.fontface = "bold",
       main.title.position = c("left", "top"),
@@ -1101,7 +1143,7 @@ tmap::tm_shape(zh_stat_zone_sf) +
 
 ```
 
-### fatal injuries
+### Gi*-statistic for fatal injuries
 ```{r}
 sads_lG_fatal <-
     spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 13])), listw = bike_acc_lw)
@@ -1123,7 +1165,6 @@ tmap::tm_shape(zh_stat_zone_sf) +
       title = paste("Deviation")
     ) +
     tmap::tm_layout(
-      main.title = "Gi*-statistic for fatal accidents",
       main.title.size = 1.0,
       main.title.fontface = "bold",
       main.title.position = c("left", "top"),
@@ -1136,7 +1177,7 @@ tmap::tm_shape(zh_stat_zone_sf) +
 ```
 
 
-### property damage
+### Gi*-statistic for property damage
 ```{r}
 sads_lG_propdam <-
     spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 14])), listw = bike_acc_lw)
@@ -1158,7 +1199,6 @@ tmap::tm_shape(zh_stat_zone_sf) +
       title = paste("Deviation")
     ) +
     tmap::tm_layout(
-      main.title = "Gi*-statistic for accidents with property damage",
       main.title.size = 1.0,
       main.title.fontface = "bold",
       main.title.position = c("left", "top"),
@@ -1176,4 +1216,23 @@ Discuss your results. What did you find regarding the hot and cold spots in your
 
 KOMMENTAR
 
+## Timesheet
+Part 1: 
+  Saskia:
+  Sarah: 2h
+Part 2:
+  Saskia:
+  Sarah: 2h
+Part 3:
+  Saskia:
+  Sarah: 4h
+Part 4:
+  Saskia:
+  Sarah: 5h
+Reworking solutions:
+  Saskia:
+  Sarah: 7h
+Cleanup:
+  Saskia:
+  Sarah: 2h
 
