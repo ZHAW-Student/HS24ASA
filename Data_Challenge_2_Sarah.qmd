@@ -52,7 +52,6 @@ The nodes (n = 24191) only have a geometry of the type "Point" and no other attr
 
 
 ```{r, results='hide'}
-
 biking_network
 
 edges<-biking_network |> 
@@ -140,19 +139,17 @@ heigo_graph <- biking_network |>
 ```
 
 ```{r}
+nodes_heigo<-nodes[c(3449,23269),]
+nodes_heigo$name <-c("start","end")
+
 ggplot() +
-  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = districts[c(4,6,10,12),], fill = "lightgrey", color = "black", label=KNAME) +
   geom_sf(data = heigo_graph |>  activate(edges) |> st_as_sf(), lwd = 1, col = 'orange') + 
-  geom_sf(data = heigo_graph |> activate(nodes) |> 
-          filter(id %in% c(wiedikon_bhf_vertex, EuropaalleeHB_vertex)) 
-          |> as_tibble() |> st_as_sf(), size = 2, col = 'orange') +
-  
-  # Add labels for the origin and destination
-  geom_sf_text(data = heigo_graph |> activate(nodes) |> 
-                 filter(id %in% c(wiedikon_bhf_vertex, EuropaalleeHB_vertex)) 
-          |> as_tibble() |> st_as_sf(), aes(label = long_name),  nudge_x = 1500, size = 3) + 
-  # Remove axis titles
+  geom_sf(data = nodes_heigo|> st_as_sf(), size = 2, col = 'orange')+
+  geom_sf_text(data = nodes_heigo|> 
+                 st_as_sf(), aes(label = name),  nudge_x = 100, size = 3)+
   theme_void()
+
 ```
 
 
@@ -169,7 +166,6 @@ parallel paths in close proximity, which could influence measures that rely on s
 For this I assume, that cyclists do not avoid traffic hotspots, which i would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits.
 
 Potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
-
 
 
 • Plot your chosen measure for the network.
@@ -227,11 +223,12 @@ leaflet() |>  addProviderTiles("Esri.WorldTopoMap", group = "Terrain")  |>
  addPolylines(data = Velotunnel_compare, color = "steelblue", weight = 2, opacity = 1, group = "Route") |> 
  addCircleMarkers(data =Velotunnel_real, radius = 2, color = "black", opacity = 1)
    
-   
 ```
 
 The tunnel is already present in the dataset although it does not quite end at one of the given coordinates.
 
+
+##Removing the tunnel
 ```{r}
 bbox_hb <- 
   st_sf(geom = st_sfc(st_point(c(8.5360556,  47.3798416)), 
@@ -265,11 +262,47 @@ biking_network_no_stadttunnel |>
   st_filter(bbox_hb, .predicates = st_intersects)
 ```
 
-
+##Calculate Betweenness centrality for Network without the Stadttunnel
 ```{r}
+biking_network_no_stadttunnel <- biking_network_no_stadttunnel |> 
+  activate(nodes) |>  
+  mutate(btw = betweenness(biking_network_no_stadttunnel))
 
+nodes_btw_no_stadttunnel<- biking_network |> 
+  activate(nodes) 
+```
+
+
+
+::: {.panel-tabset .nav-pills}
+##Betweenness centrality for center of Zürich with the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network |> activate(edges) |> as_tibble() |> st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network |> activate(nodes) |> as_tibble() |> st_as_sf(), 
+          aes(size=btw), col = "black")+
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE)+
+  theme_void()
 
 ```
 
 
-This project affects x
+##Betweenness centrality for center of Zürich without the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network_no_stadttunnel |> activate(edges) |> as_tibble() |> st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network_no_stadttunnel |> activate(nodes) |> as_tibble() |> st_as_sf(), 
+          aes(size=btw), col = "black")+
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE)+
+  theme_void()
+
+```
+:::
+
+This project does not really affect the betweenness centrality in the city center.
