@@ -24,6 +24,7 @@ This file includes the assignments, code and interpretation of Data Challenge 1.
 ## Packages
 ```{r}
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(lubridate)
 library(sf)
@@ -249,7 +250,7 @@ bike_accidents2020 <- st_coordinates(bike_accidents |>
 bike_accidents2021 <- st_coordinates(bike_accidents |> 
   filter(AccidentYear == "2021"))
 ```
-
+::: {.panel-tabset .nav-pills}
 
 ## Reachability Plot 2018 data
 ```{r, echo=FALSE}
@@ -306,7 +307,7 @@ plot(ops_reach2021)
 ```{r, echo=FALSE}
 plot(bike_accidents2021, cex = 0.4, pch = 19, col = ops_reach2021$cluster + 1, asp = 1)
 ```
-
+:::
 
 ::: {.panel-tabset .nav-pills}
 ## Convex Cluster Hulls 2018 data
@@ -421,7 +422,7 @@ cave_acc2018_2 <- concaveman(bike_acc2018_c1, concavity = 2, length_threshold = 
 cave_acc2018_1 <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
 cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0)
 ```
-::: {.panel-tabset .nav-pills}
+
 # find best concavity value -> this title does not fit
 ```{r}
 #ggplot() +
@@ -464,7 +465,7 @@ bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_thresho
 # bike_acc2019_c13_con <- concaveman(bike_acc2019_c13, concavity = 1, length_threshold = 0)
 
 ```
-
+::: {.panel-tabset .nav-pills}
 # Clusters of bike accidents 2018
 ```{r}
 ggplot() +
@@ -892,7 +893,7 @@ bike_accidents181921 <- bike_accidents_sf|>
   filter(bike_accidents_sf$AccidentYear %in% c("2018", "2019", "2021"))
 
 # Summary will show frequency table per Year
-summary(bike_accidents181921)
+# summary(bike_accidents181921)
 
 ggplot() +
   geom_sf(data = bike_accidents181921, aes(colour = AccidentYear))  +
@@ -947,18 +948,21 @@ From the bicycle accidents data, choose at least two relevant variables that mak
 
 ```{r}
 # read data of statistical zones
-zh_stat_zone <- read_csv("Session_5/data/stzh.adm_statzonen_v.csv")
+zh_stat_zone <- read.csv("Session_5/data/stzh.adm_statzonen_v.csv")
 zh_stat_zone_sf <- st_as_sf(zh_stat_zone,wkt = "geometry", crs = 2056)
-zh_stat_zone_sf <- zh_stat_zone_sf[, c(1,3,9)]
+zh_stat_zone_sf <- zh_stat_zone_sf[, c(1,2,3,9)]
 
 
 nn_dis <- 1500
 
-getisbikedata_df<-filter(filter(accidents_no_geom,AccidentInvolvingBicycle == "true"), AccidentYear =="2018") ##| AccidentYear == "2019"
+getisbikedata_df <- filter(accidents_no_geom,AccidentInvolvingBicycle == "true") 
 getisbikedata_df<-getisbikedata_df[,c(11,20,21,24)]
 
+# Calculate centroid
+zh_stat_zone_zentro <- st_centroid(zh_stat_zone_sf)
 
-###Create proportions for accident types
+
+### Create proportions for accident types
 getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
 
 getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
@@ -978,10 +982,32 @@ smry <- getisbikedata_sf_join |>
             sum_severinj = sum(severinj),
             sum_propdam = sum(propdam),
             sum_fatal = sum(fatal))
+smry_df <- st_drop_geometry(smry)
+
+acc_per_zentro <- full_join(zh_stat_zone_zentro, smry_df, by = "stzname")
+
+
+acc_per_zentro <- acc_per_zentro  |> 
+  rowwise() |> 
+  mutate(sum_acc = sum(sum_lightinj,sum_severinj, sum_fatal, sum_propdam, na.rm = T))
+
+
+acc_per_zentro <- filter(acc_per_zentro, sum_acc > 0)
+
+
+acc_per_zentro <- acc_per_zentro  |> 
+  mutate(per_lightinj = 1/sum_acc*sum_lightinj,
+         per_severinj = 1/sum_acc*sum_severinj,
+         per_fatal = 1/sum_acc*sum_fatal,
+         per_propdam = 1/sum_acc*sum_propdam)
+
+
+acc_per_zentro_df <- extract(acc_per_zentro, geometry, into = c('Lat', 'Lon'), '\\((.*),(.*)\\)', conv = T)
+acc_per_zentro_sf <- acc_per_zentro
 
 
 # create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
-bike_acc_nb <- spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) # kann auch warnmeldungen generieren Warnmeldung:In spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 3 sub-graphs
+bike_acc_nb <- spdep::dnearneigh(acc_per_zentro_sf, 0, nn_dis) # kann auch warnmeldungen generieren Warnmeldung:In spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 3 sub-graphs
 
 # convert into list with spatial weights, B = binary weight
 bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
@@ -989,7 +1015,7 @@ bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
 # Create the line links from the nb object, requesting an sf object to be returned.
 # CRS needs to be set as it was carried over to the nb object.
 bike_acc_links <- 
-   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(getisbikedata_sf), as_sf = TRUE) |>
+   spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(acc_per_zentro_sf), as_sf = TRUE) |>
    sf::st_set_crs(2056)#####hier haben sie keine warnmeldungIn spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 33 sub-graphs
 # 
 # # Plot the neighbor links using functions from the tmap package
@@ -997,163 +1023,151 @@ tmap::tm_shape(districts) +
   tmap::tm_borders(col = "gray") +
   tmap::tm_shape(bike_acc_links) + 
   tmap::tm_lines(col = "red", lwd = 0.5) +
-  tmap::tm_shape(getisbikedata_sf) +
+  tmap::tm_shape(acc_per_zentro) +
   tmap::tm_dots(col = "black", size = 0.1) +
   tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+
+
 
    
 ```
 
-
-```{r}
-var_string <- c("lightinj", "severinj", "propdam","fatal")
-variant <- c("Accident with light injuries", "Accident with severe injuries","Accident with property damage", "Accident with fatalities")
-
-#Turn accident years into factors
-getisbikedata$AccidentYear <- as.factor(getisbikedata$AccidentYear)
-
-# For each variant, compute local Gi*-statistic with spdep::localG() and 
-# display as choropleth map.
-
-# Create local Gi* stats object
-#new
-sads_lG <-
-    spdep::localG(x = as.numeric(unlist(getisbikedata_df[, 5])), listw = bike_acc_lw)
-
-s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
-tmp_sf <- bind_cols(getisbikedata_sf, as.data.frame(s_lG))
-
-
-tmap::tm_shape(districts) +
-    tmap::tm_borders(col = "gray") +
-    tmap::tm_shape(tmp_sf) +
-    tmap::tm_dots(
-      size = 0.2,
-      col = "s_lG",
-      n = 6,
-      midpoint = 0,
-      palette = "-RdYlBu",
-      title.size = 0.2,
-      title = paste("Variant \"", "Accident with light injuries", "\"", sep = "")
-    ) +
-    tmap::tm_layout(
-      main.title = "Gi*-statistic for accident severity",
-      main.title.size = 1.0,
-      main.title.fontface = "bold",
-      main.title.position = c("left", "top"),
-      legend.position = c("left", "top"),
-      frame = FALSE,
-      inner.margins = c(0.05, 0.05, 0.05, 0.05)
-    ) +
-    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-  
-  
-
-
-###function - does still not work
-plot_variant <- function(i, j) {
-
-# Create local Gi* stats object
-sads_lG <-
-    spdep::localG(x = as.numeric(unlist(getisbikedata_df[, i])), listw = bike_acc_lw)
-  
-# attach Gi* statistic values to the sfc_POINT object
-s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
-  tmp_sf <- bind_cols(getisbikedata_sf, as.data.frame(s_lG))
-  
-# generate map with dot symbols shaded according to Gi*-stats value
-m <- tmap::tm_shape(districts) +
-    tmap::tm_borders(col = "gray") +
-    tmap::tm_shape(tmp_sf) +
-    tmap::tm_dots(
-      size = 0.2,
-      col = "s_lG",
-      n = 6,
-      midpoint = 0,
-      palette = "-RdYlBu",
-      title.size = 0.2,
-      title = paste("Variant \"", variant[j], "\"", sep = "")
-    ) +
-    tmap::tm_layout(
-      main.title = "Gi*-statistic for accident severity",
-      main.title.size = 1.0,
-      main.title.fontface = "bold",
-      main.title.position = c("left", "top"),
-      legend.position = c("left", "top"),
-      frame = FALSE,
-      inner.margins = c(0.05, 0.05, 0.05, 0.05)
-    ) +
-    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-  
-  # a tmap inside a loop needs to be *printed* explicitly; otherwise it won't show
-  # print(m)
-  
-  return(m)
-}
-
-
-
-
-
-##old
-sads_lG <-
-    spdep::localG(x = as.numeric(unlist(getisbikedata[, i])), listw = bike_acc_lw)
-
-sads_lG <-
-    spdep::localG(x <- as.numeric(unlist(getisbikedata$AccidentInvolvingPedestrian)), listw = bike_acc_lw)
-  
-  # attach Gi* statistic values to the sfc_POINT object
-  s_lG <- sads_lG[1:length(sads_lG)]   # convert to vector
-  tmp_sf <- bind_cols(getisbikedata, as.data.frame(s_lG))
-  
-  # generate map with dot symbols shaded according to Gi*-stats value
-  tmap::tm_shape(districts) +
-    tmap::tm_borders(col = "gray") +
-    tmap::tm_shape(tmp_sf) +
-    tmap::tm_dots(
-      size = 0.2,
-      col = "s_lG",
-      n = 6,
-      midpoint = 0,
-      palette = "-RdYlBu",
-      title.size = 0.2,
-    ) +
-    tmap::tm_layout(
-      main.title = "Gi*-statistic for accident severity",
-      main.title.size = 1.0,
-      main.title.fontface = "bold",
-      main.title.position = c("left", "top"),
-      legend.position = c("left", "top"),
-      frame = FALSE,
-      inner.margins = c(0.05, 0.05, 0.05, 0.05)
-    ) +
-    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-
-```
-
-
 ::: {.panel-tabset .nav-pills}
 
-### Variant "als"
+### light injuries
 ```{r}
-plot_variant("Accident with light injuries", 1)
+sads_lG_light <-
+    spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 11])), listw = bike_acc_lw)
+
+s_lG_light <- sads_lG_light[1:length(sads_lG_light)]   # convert to vector
+tmp_sf_light <- bind_cols(acc_per_zentro_sf, as.data.frame(s_lG_light))
+
+
+tmap::tm_shape(zh_stat_zone_sf) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf_light) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG_light",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Deviation")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for light accidents",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
 ```
 
-### Variant "weder"
+### severe injuries
 ```{r}
-plot_variant("prop_v2_weder", 2)
+sads_lG_severe <-
+    spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 12])), listw = bike_acc_lw)
+
+s_lG_severe <- sads_lG_severe[1:length(sads_lG_severe)]   # convert to vector
+tmp_sf_severe <- bind_cols(acc_per_zentro_sf, as.data.frame(s_lG_severe))
+
+
+tmap::tm_shape(zh_stat_zone_sf) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf_severe) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG_severe",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Deviation")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for severe accidents",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+
 ```
 
-### Variant "wie"
+### fatal injuries
 ```{r}
-plot_variant("prop_v3_wie", 3)
+sads_lG_fatal <-
+    spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 13])), listw = bike_acc_lw)
+
+s_lG_fatal <- sads_lG_fatal[1:length(sads_lG_fatal)]   # convert to vector
+tmp_sf_fatal <- bind_cols(acc_per_zentro_sf, as.data.frame(s_lG_fatal))
+
+
+tmap::tm_shape(zh_stat_zone_sf) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf_fatal) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG_fatal",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Deviation")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for fatal accidents",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+
 ```
 
-### Variant "wan"
-```{r}
-plot_variant("prop_v4_wan", 4)
-```
 
+### property damage
+```{r}
+sads_lG_propdam <-
+    spdep::localG(x = as.numeric(unlist(acc_per_zentro_df[, 14])), listw = bike_acc_lw)
+
+s_lG_propdam <- sads_lG_propdam[1:length(sads_lG_propdam)]   # convert to vector
+tmp_sf_propdam <- bind_cols(acc_per_zentro_sf, as.data.frame(s_lG_propdam))
+
+
+tmap::tm_shape(zh_stat_zone_sf) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf_propdam) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG_propdam",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Deviation")
+    ) +
+    tmap::tm_layout(
+      main.title = "Gi*-statistic for accidents with property damage",
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+```
 :::
 
 
