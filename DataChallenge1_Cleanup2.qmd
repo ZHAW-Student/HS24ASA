@@ -754,7 +754,7 @@ polyhr_18_19union<- st_union(hr19_90sf, hr18_90sf)
 ```
 
 ::: {.panel-tabset .nav-pills}
-#overlap of areas 
+##overlap of areas 
 ```{r}
 plot(st_coordinates(hr18_90sf), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
@@ -764,7 +764,7 @@ legend("bottomleft", legend=c("KDE area 2018", "KDE area 2019"),
        fill=c("cyan", "magenta"), cex=0.8)
 ```
 
-#Jaccard Index
+##Jaccard Index
 ```{r}
 cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
     "Area of 2019: ", sf::st_area(hr19_90sf), "m^2 \n",
@@ -772,8 +772,6 @@ cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
     "Union Area:", sf::st_area(polyhr_18_19union), "m^2 \n",
     "Jaccard Index:", sf::st_area(polyhr_18_19inters)/sf::st_area(polyhr_18_19union), "\n")
 ```
-
-
 :::
 
 KOMMENTAR
