@@ -107,12 +107,14 @@ ggplot()+
 
 The accidents occur mostly along road networks, as bicycles are bound to them except for recreational usage, which probably leads to some mountainbike- associated accidents in the forests. Except for those accidents, I expect clusters in areas with high traffic and a mix of different types traffic participants like at the Central where pedestrians, trams, and road traffic mix. Further I expect visibility and the complexity of traffic routing to lead to clustering at intersections. I also expect several reports from accidents with light injuries and or property damage not to be included in this data based on neighbors dealing with smaller accidents on their own. The type of land use also will lead to clustering as different land uses will lead to different traffic. As an example I do expect a lower amount of accidents with a lower density in residential areas than in the area of railroad stations. Based on those assumptions I expect clusters being mostly generated around the different city centers and they will probably be separated by more rural areas.
 
-As a clustering method I would use OPTICS rather than DBSCAN. Although this method is not informed using certain attributes I describe above like the amount of traffic, mixing of traffic participants, road networks, land use or the distance to mobility centers, it is capable of adapting to the different densities, which can be generated from those attributes.
-
 
 * **Task 6:** From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
 
-As mentioned previously I chose OPTICS as a method. As control parameters i choose minPts = 5 as this number allows smaller rural clusters but does ignore spaces where an insufficient number of points are present. As a threshold to identify clusters eps_cl was set to 500 to be capable of discerning between clusters of different sub- centers of Zürich but to also prevent the clusters merge into one big cluster. 
+As a clustering method I would use OPTICS rather than DBSCAN. Although this method is not informed using certain attributes I describe above like the amount of traffic, mixing of traffic participants, road networks, land use or the distance to mobility centers, it is capable of adapting to the different densities, which can be generated from those attributes.
+
+As mentioned previously I chose OPTICS as a method. As control parameters i choose minPts = 5 as this number allows smaller rural clusters but does ignore spaces where an insufficient number of points are present. As a threshold to identify clusters eps_cl was set to 500 to be capable of discerning between clusters of different sub- centers of Zürich but to also prevent the clusters merge into one big cluster.
+
+500 lag bei allen etwa in der kurve des knn distplot
 
 
 ```{r, echo = FALSE, message = FALSE}
@@ -185,22 +187,25 @@ title(main="2021")
 
 Overall for all years one big central cluster was generated as well as some smaller more rural clusters. Unfortunately clusters in the city center could not be discerned from each other with the parameters I used. Instead of fixing one threshold (eps_cl) a flexible threshold which could have probably been achieved using extractXi. Clustering methods capable of adding contextual information to the clustering (see attributes described in task 5) could also perform better in the city center of Zürich than the methods I used.  
 
+Runtersetzen von eps sorgte für mehr komische cluster
+Cluster der in der mitte gebildet wird als ausgangspunkt und wieder darin clustern.
+
 
 # Second part: Polygon Delineation ####
 * **Task 8**: Given the clusters that you have extracted in Part 1 of the DC1 assignment:
   a. Define a set of criteria that a method should fulfill that can be used to delineate the given clusters by polygons. Use free text for these definitions, but try to be concise and precise. (Note: These criteria can also be used in the subsequent Discussion to evaluate whether they have been met.)
   
-The method should be capable to account for concave indents in the clusters and the polygons should not overlap with each other (within a year).
+The method should be capable to account for concave indents in the clusters and the polygons should not overlap with each other (within a year). 
   
   b. Choose a polygon delineation method that you deem appropriate in light of the above
 criteria. Justify your choice.
 
-I will use Concave hull as a delineation method, as it does account for the concave shape, but will not make holes in the clusters and can be adapted to minimize overlapping between clusters.
+I will use concave hull as a delineation method, as it does account for the concave shape, but will not make holes (other than alpha hulls) in the clusters and can be adapted to minimize overlapping between clusters.
 
 
 * **Task 9**: From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
 
-The area covered by clusters is similar for both years (2018 & 2019) with the clusters from 2019 covering an area only 1.4km^2 larger than the area of the 2018 clusters. For both years one major cluster was formed for the city center of Zürich spreading to Altstetten and Oerlikon. The major clusters mostly differ in the Region of Oerlikon, Seebach and Altstetten as well as along the lakeside due to them stretching at dissimilar distances in those border- areas. This cluster is also responsible for most of the overlap between the years leading to the Jaccrd Index value of 0.5. Beside the major clusters several smaller ones consisting of a rather small amount of points (down to 4) were formed with three more clusters for 2019 than 2018. 
+The area covered by clusters is similar for both years (2018 & 2019) with the clusters from 2019 covering an area only 1.4km^2 larger than the area of the 2018 clusters. For both years one major cluster was formed for the city center of Zürich spreading to Altstetten and Oerlikon. The major clusters mostly differ in the Region of Oerlikon, Seebach and Altstetten as well as along the lakeside due to them stretching at dissimilar distances in those border- areas. This cluster is also responsible for most of the overlap between the years leading to the Jaccard Index value of 0.5. Beside the major clusters several smaller ones consisting of a rather small amount of points (down to 4) were formed with three more clusters for 2019 than 2018. 
 The overall similarity between both years was expected to be low based on those years not containing any anormalites based on Covid-19. 
 
 
@@ -346,22 +351,34 @@ cat("Area of 2018:", sf::st_area(all18), "m^2 \n",
 
 * **Task 10**: Overall, what did you find with the above steps? What do these steps tell you about the situation of bicycle accidents in Zurich? How useful are the methods used so far in analysing the given data? Any other points of note?
 
-I noticed, that the even the more refined methods tend to lead to a single big clusters and some small clusters. Overall clustering without including the road network, to which bicycles are bound, is not suitable and clustering using only distance to define clusters is not sufficient to discern accident- hotspots in the city centre of Zürich. The methods also only show in which areas most accidents occur but do not give us any information about the frequency of the accidents in the different neigborhoods of Zürich.
+I noticed, that the even the more refined methods tend to lead to a single big clusters and some small clusters. Overall clustering without including the road network, to which bicycles are bound, is not suitable and clustering using only distance to define clusters is not sufficient to discern accident- hotspots in the city center of Zürich. The methods also only show in which areas most accidents occur but do not give us any information about the frequency of the accidents in the different neigborhoods of Zürich.
 
+
+density nimmt vom zentrum her ab aber macht es schwierig was rauszuziehen. braucht mehr aufwand müsste darauf angewendet werden.
+
+Zeitlicher aspekt. clustered auch zeitlich
 ####Mehr
 
 
 # Third part of DC1 ####
 * **Task 11:** Similarly to the clustering and polygon delineation tasks carried out in Parts 1 and 2 of DC1, respectively, start off by defining criteria for using KDE to detect areas/hotspots of elevated bicycle accident density, and explain your reasoning.
 
-We need to know, that the accidents are related to each other as well as to environment (in this case information about the road, visibility, traffic etc.) to apply KDE to it. If the accidents were not related to each other applying KDE would be wrong. We also should think about the bandwidth we apply to the KDE and whether we want to use established rules, define one from literature or perform a iterative search, where we optimize based on validation. 
+We need to know, that the accidents are related to each other  to apply KDE to it. If the accidents were not related to each other applying KDE would be wrong.
+
+spatial correlation. 
+We also should think about the bandwidth we apply to the KDE and whether we want to use established rules, define one from literature or perform a iterative search, where we optimize based on validation. 
+
+as well as to environment (in this case information about the road, visibility, traffic etc.)
+
 
 
 ####Mehr
 
 * **Task 12:** Choose any **two years** from the years 2018 to 2021 (justify your choice of years) and compute the KDE surfaces for each of these two separately and visualize your results. You are free to choose the KDE implementation (i.e., R package and function(s)) as well as the parameters (bandwidth selection method, etc.), but you should document your choices and discuss, in the subsequent Task 14, your results in light of your choices.
 
-I choose the years 2018 and 2019 to be able to compare those results without having any influence from COVID-19 and the lockdowns it caused. As COVID-19  affected traffic it could cause large differences between the years which could make it more difficult to see how suitable a method is for assessing bicycle accident data. Based on our data containing lots of accidents in the city center and only a low amount of points in the more rural areas I would choose a method which does rather oversmooth than undersmooth to prevent the outliers being included in my KDE surface. 
+I choose the years 2018 and 2019 to be able to compare those results without having any influence from COVID-19 and the lockdowns it caused. As COVID-19 affected traffic it could cause large differences between the years which could make it more difficult to see how suitable a method is for assessing bicycle accident data. Based on our data containing lots of accidents in the city center and only a low amount of points in the more rural areas I would choose a method which does rather oversmooth than undersmooth to prevent the outliers being included in my KDE surface. 
+
+90 will anteil wo in clusters im vorherigen clusters vorhanden ist, welche noise points ausschliesst
 
 ###Mehr
 
@@ -440,7 +457,9 @@ adehabitatHR::
 
 * **Task 13:** Compute the "volume of intersection" ("VI") between the KDE surfaces (utilization distributions) of the two years. Hint: There are different ways to do that, but the `adehabitatHR` package has functionality for that. How do the results correspond to those of Task 9 (Jaccard Index or IoU)?
 
-As the smaller clusters have been excluded based on the method of KDE and the corresponding parameters chosen, only one surface remains which corresponds to a widened smoothed version of the major clusters in Task 9. This has lead to the data of both years being more similar which also reflects in the Jaccard Index value now being at 0.9. 
+As the smaller clusters have been or absorbed by the big cluster or excluded based on the method of KDE and the corresponding parameters chosen, only one surface remains which corresponds to a widened smoothed version of the major clusters in Task 9. This has lead to the data of both years being more similar which also reflects in the Jaccard Index value now being at 0.9. 
+
+an den ränder keine überlappung jaccard höher weil es keine lücken zwischen den clustern hat
 
 
 ```{r}
@@ -460,20 +479,20 @@ ggplot() +
 
 * **Task 14:** Discuss your results for this part of DC1 (density estimation). What did you find? Compare the results of this part with the clusters/polygons of Parts 1 and 2 (see note below): What are the commonalities? What are the differences? Which method(s) perform more adequately than others for the given problem and data? Which method(s) would you recommend, and which ones not? Why? (You are free to add more points to the discussion.)
 
-The commonalities include big surfaces spanning from the city center to Oerlikon and Altstetten, although the results from the KDE are wider and more smoothed. Another difference is that the KDE with the parameters we used only lead to one area per year instead of several clusters.
+The commonalities include big surfaces spanning from the city center to Oerlikon and Altstetten, although the results from the KDE are wider and more smoothed. Another difference is that the KDE with the parameters we used only lead to one area per year instead of several clusters based on the paramters we used.
 
-As the test for normal distribution of our data showed that our data are not normally distributed (we did not expect the data to be normally distributed) we first wanted to use plug-in bandwidth. But as we failed to export the KDS surface after 2.5h of struggling with the obscure "KDE" class of the output of the Hpi function we decided to resort to functions included in the adeHabitatHR package. Although the method tends to oversmooth with data, which is not normally distributed, we chose HREF as method instead of LSCV because we would rather have a slightly oversmoothed result instead of one containing every outlier. We chose to use the 90% range for both to reflect the percentage of points which was included in clusters back in Task 9. Looking at the HREF results I would recommend the plug-in bandwidth for this type of data because it did not oversmooth as much. But as a next best alternative HREF performed acceptable considering that our points were not normally distributed.
+As the test for normal distribution of our data showed that our data are not normally distributed (we did not expect the data to be normally distributed) we first wanted to use plug-in bandwidth. But as we failed to export the KDE surface after 2.5h of struggling with the obscure "KDE" class of the output of the Hpi function we decided to resort to functions included in the adeHabitatHR package. Although the method tends to oversmooth with data, which is not normally distributed, we chose HREF as method instead of LSCV because we would rather have a slightly oversmoothed result instead of one generating a surface for every outlier. We chose to use the 90% range for both to reflect the percentage of points which was included in clusters back in Task 9. Looking at the HREF results I would recommend the plug-in bandwidth for this type of data because it did not oversmooth as much. But as a next best alternative HREF performed acceptable considering that our points were not normally distributed.
+
+
 
 # Fourth part of DC1 ####
 
 
 * **Task 15:** Choose one or more distance measure functions (justify your choice) and compute it/them for * a. all bicycle accidents (2011 - 2021) 
 
+L statt F funktion, weil ähnlich, aber linear ist und dadurch einfacher für uns interpretierbar. 
 
-##Wieso? @ Saskia
-
-
-
+Umschreiben, von Saskia: For this task, the L-function is used. It is very similar to the F-function, but linear and therefore easier to interpret. These functions are used to determine whether points are clustered, dispersed or random.
 
 ::: {.panel-tabset .nav-pills}
 
@@ -670,10 +689,23 @@ plot(acc_2018_2021_clf_env, main = "Cross-L-function of bike accidents 2018 vs. 
 
 * **Task 17:** Discuss your results. Similarities and differences between the various point sets? Noteworthy spatial and/or temporal patterns? Is any difference observable in the patterns of the cross-X function in the transition to the Covid-19 pandemic? etc. etc. Note: Consider in your interpretation that the distance scale may change between years.
 
-KOMMENTAR
-#####Was ist hier passiert?
+15 a): bei allen Distanzen geclusterd und signifikant unterschiedlich gemäss mad und dclf test.
+
+b): bei allen Distanzen geclusterd und signifikant unterschiedlich gemäss mad und dclf test.
+
+c): Bis 70 geclustered dann kein signifikanter unterschied zu random und ab 160 wieder signifikant, wenn auch wieder knapp bei 300 signifkant unterschiedlich gemässmad und dclf
+
+
+Task 16:
+In different years accidents happened in similar areas 
+In den verglichenen Jahren gibt es einen räumlichen Zusammenhang  zwischen den Unfalldaten welche signifikant von einer random Verteilung abweichen. Das ganze ist auch grafisch ersichtlich
+
 
 * **Task 18:** From the bicycle accidents data, choose at least two relevant variables that make sense being compared, e.g. two different accident types, severity levels, times of day, years etc. For these selected accidents, compute the counts within the ‘statistical zones’ of Zurich and use these counts to compute the Getis-Ord G*-statistic for each of your counts layers. Visualize your results appropriately.
+
+
+wir schauen uns die severities an.
+
 
 ```{r}
 # read data of statistical zones
@@ -766,8 +798,19 @@ plot_variant <- function(i, j) {
 
 * **Task 19:** Discuss your results. What did you find regarding the hot and cold spots in your accident count layers? How do they compare to each other across layers and across (past) methods? etc. Discuss also the influence of the parameter settings (e.g., neighbor search distance, spatial weight formation) on your results.
 
-KOMMENTAR
+light und severe zeigen ähnlichen
 
-#####Was ist hier passiert?
+
+Bias. selbstunfall weniger gemeldet.
+property weil andere involvierert. verkehrsreichste gebiete mit viel interaktion viel fussgänger. eher gemeldet weil verkehr behindert. meh zeugen.
+
+bias freizeitunfall
+fatal: in diesem gebiet werden vermutlich nur fatale freizeitunfälle gemeldet bis für selbstunfall-> gibt mehrere mountainbikerouten in Gebiet. 
+
+
+neighbor search distance dichte von zonen. soll d vernetzheit vom zentrum repräsentieren und abnehmende dichte. Wenn wert tiefer wären resultate am rand stärker -> mehr randeffekt -> bias wäre noch höher. wenn höher randgebiete übervernetzt, mehr falsche vvernetzungen über see.
+
+
+spatial weight formation
 
 

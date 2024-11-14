@@ -275,7 +275,7 @@ ops_reach2021 <- extractDBSCAN(ops_reach2021, eps_cl = 500)
 # ops_reach2021
 ```
 
-
+::: {.panel-tabset .nav-pills}
 ## reachability plot 2018 data
 ```{r, echo=FALSE}
 plot(ops_reach2018)
@@ -315,33 +315,41 @@ plot(ops_reach2021)
 ```{r, echo=FALSE}
 plot(bike_accidents2021, cex = 0.4, pch = 19, col = ops_reach2021$cluster + 1, asp = 1)
 ```
-
-::: {.panel-tabset .nav-pills}
-## convex cluster hulls 2018 data
-```{r, echo=FALSE}
-hullplot(bike_accidents2018[,c(1,2)], ops_reach2018, asp = 1, main = NA)
-```
-
-## convex cluster hulls 2019 data
-```{r, echo=FALSE}
-hullplot(bike_accidents2019[,c(1,2)], ops_reach2019, asp = 1, main = NA)
-```
-
-## convex cluster hulls 2020 data
-```{r, echo=FALSE}
-hullplot(bike_accidents2020[,c(1,2)], ops_reach2020, asp = 1, main = NA)
-```
-
-## convex cluster hulls 2021 data
-```{r, echo=FALSE}
-hullplot(bike_accidents2021[,c(1,2)], ops_reach2021, asp = 1, main = NA)
-```
 :::
+
+
+
+
+```{r, echo=FALSE}
+## cluster hulls 2018 data
+# hullplot(bike_accidents2018[,c(1,2)], ops_reach2018, asp = 1, main = NA)
+```
+
+
+```{r, echo=FALSE}
+## cluster hulls 2019 data
+# hullplot(bike_accidents2019[,c(1,2)], ops_reach2019, asp = 1, main = NA)
+```
+
+
+```{r, echo=FALSE}
+## cluster hulls 2020 data
+# hullplot(bike_accidents2020[,c(1,2)], ops_reach2020, asp = 1, main = NA)
+```
+
+
+```{r, echo=FALSE}
+# ## cluster hulls 2021 data
+# hullplot(bike_accidents2021[,c(1,2)], ops_reach2021, asp = 1, main = NA)
+```
+
 
 ## Task 7
 Discuss your results, including also limitations or problems, and possible other methods that you could have used.
 
 KOMMENTAR 
+
+
 
 # Second part: Polygon Delineation
 ## Task 8
@@ -355,6 +363,8 @@ KOMMENTAR
 criteria. Justify your choice.
 
 KOMMENTAR
+
+
 
 ## Task 9
 From the years 2018 to 2021 for which you computed clusters in Task 6, choose at least two years and apply your polygon delineation method of choice to each of these two years separately. Compute the Jaccard Index (aka Intersection over Union) for pair(s) of selected years and present and discuss the results.
@@ -479,7 +489,7 @@ bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_thresho
 
 ```
 ::: {.panel-tabset .nav-pills}
-# clusters of bike accidents 2018
+## clusters of bike accidents 2018
 ```{r}
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -511,7 +521,7 @@ ggplot() +
   coord_sf(datum = NA)
 ```
 
-# clusters of bike accidents 2019
+## clusters of bike accidents 2019
 ```{r}
 
 ##remove clusters consisting of two points somehow
@@ -547,7 +557,7 @@ ggplot() +
   coord_sf(datum = NA)
 ```
 
-#overlap of areas 
+##overlap of areas 
 ```{r}
 # Compute the Jaccard Index
 ## unify single polygons from 2018 and 2019
@@ -578,7 +588,7 @@ legend("bottomleft", legend=c("area 2018", "area 2019"),
 
 ```
 
-#Jaccard Index
+##Jaccard Index
 ```{r}
 cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Area of 2019:", sf::st_area(poly2019), "m^2 \n",
@@ -586,7 +596,6 @@ cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Union Area:", sf::st_area(poly_18_19union), "m^2 \n",
     "Jaccard Index:", sf::st_area(poly_18_19inters)/sf::st_area(poly_18_19union),  "\n")
 ```
-
 :::
 
 KOMMENTAR
@@ -842,30 +851,31 @@ spatstat.explore::mad.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbo
 spatstat.explore::dclf.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = TRUE)
 
 ```
+:::
 
+
+```{r, echo=FALSE}
 ## L-Function 2019 data, with envelope
-```{r, echo=FALSE}
 # Create a ppp object 
-bike_accidents2019_coords <- sf::st_coordinates(bike_accidents_2019_sf)
-win19 <- as.owin(st_bbox(bike_accidents_2019_sf))
-bike_accidents2019_ppp <- spatstat.geom::ppp(x = bike_accidents2019_coords[,1], y =  bike_accidents2019_coords[,2],
-                                         window = win19, unitname = c("meter", "meters"))
-
-# Generate L-function
-bike_accidents2019_enve <- spatstat.explore::envelope(bike_accidents2019_ppp, fun = Lest, nsim = 100, 
-                                         correction = "Ripley", verbose = FALSE)
-# Plot 
-plot(bike_accidents2019_enve, main = "")
+# bike_accidents2019_coords <- sf::st_coordinates(bike_accidents_2019_sf)
+# win19 <- as.owin(st_bbox(bike_accidents_2019_sf))
+# bike_accidents2019_ppp <- spatstat.geom::ppp(x = bike_accidents2019_coords[,1], y =  bike_accidents2019_coords[,2],
+#                                          window = win19, unitname = c("meter", "meters"))
+# 
+# # Generate L-function
+# bike_accidents2019_enve <- spatstat.explore::envelope(bike_accidents2019_ppp, fun = Lest, nsim = 100, 
+#                                          correction = "Ripley", verbose = FALSE)
+# # Plot 
+# plot(bike_accidents2019_enve, main = "")
 ```
 
-## MAD & DCLF Test 2019 data
+
 ```{r, echo=FALSE}
+## MAD & DCLF Test 2019 data
 # We also apply the MAD test
-spatstat.explore::mad.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = FALSE)
-spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = TRUE)
+# spatstat.explore::mad.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = FALSE)
+# spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = TRUE)
 ```
-
-::: 
 
 * c. bicycle accidents for only the cluster points of the year selected in (b)
 
@@ -1150,27 +1160,27 @@ s_lG_fatal <- sads_lG_fatal[1:length(sads_lG_fatal)]   # convert to vector
 tmp_sf_fatal <- bind_cols(acc_per_zentro_sf, as.data.frame(s_lG_fatal))
 
 
-tmap::tm_shape(zh_stat_zone_sf) +
-    tmap::tm_borders(col = "gray") +
-    tmap::tm_shape(tmp_sf_fatal) +
-    tmap::tm_dots(
-      size = 0.2,
-      col = "s_lG_fatal",
-      n = 6,
-      midpoint = 0,
-      palette = "-RdYlBu",
-      title.size = 0.2,
-      title = paste("Deviation")
-    ) +
-    tmap::tm_layout(
-      main.title.size = 1.0,
-      main.title.fontface = "bold",
-      main.title.position = c("left", "top"),
-      legend.position = c("left", "top"),
-      frame = FALSE,
-      inner.margins = c(0.05, 0.05, 0.05, 0.05)
-    ) +
-    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+# tmap::tm_shape(zh_stat_zone_sf) +
+#     tmap::tm_borders(col = "gray") +
+#     tmap::tm_shape(tmp_sf_fatal) +
+#     tmap::tm_dots(
+#       size = 0.2,
+#       col = "s_lG_fatal",
+#       n = 6,
+#       midpoint = 0,
+#       palette = "-RdYlBu",
+#       title.size = 0.2,
+#       title = paste("Deviation")
+#     ) +
+#     tmap::tm_layout(
+#       main.title.size = 1.0,
+#       main.title.fontface = "bold",
+#       main.title.position = c("left", "top"),
+#       legend.position = c("left", "top"),
+#       frame = FALSE,
+#       inner.margins = c(0.05, 0.05, 0.05, 0.05)
+#     ) +
+#     tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
 
 ```
 
@@ -1212,25 +1222,8 @@ tmap::tm_shape(zh_stat_zone_sf) +
 ## Task 19
 Discuss your results. What did you find regarding the hot and cold spots in your accident count layers? How do they compare to each other across layers and across (past) methods? etc. Discuss also the influence of the parameter settings (e.g., neighbor search distance, spatial weight formation) on your results.
 
+
 KOMMENTAR
 
 # Timesheet
-Part 1: 
-  Saskia:
-  Sarah: 2h
-Part 2:
-  Saskia:
-  Sarah: 2h
-Part 3:
-  Saskia:
-  Sarah: 4h
-Part 4:
-  Saskia:
-  Sarah: 5h
-Reworking solutions:
-  Saskia:
-  Sarah: 7h
-Cleanup:
-  Saskia:
-  Sarah: 2h
-
+Each person has invested about 25 hours into this project.
