@@ -22,7 +22,7 @@ execute:                      # Set global options for execution of code blocks
 This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. For this work no language models like ChatGPT have been used (neither for the code nor the text answers). We are aware about you not grading the code but still invite you to take a look at it, as we spent quite some time struggling with it. 
 
 ```{r}
-#Packages
+# Packages
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -36,7 +36,6 @@ library(adehabitatHR)
 library(spatstat)
 library(spdep)
 library(ks)
-
 ```
 
 # First part: Spatial Clustering
@@ -82,7 +81,6 @@ acc_moto_bike <- accidents_no_geom |>
 
 acc_ped_bike_moto <- accidents_no_geom |> 
   count(AccidentInvolvingPedestrian, AccidentInvolvingBicycle, AccidentInvolvingMotorcycle)
-  
 ```
 * a. Number of accidents by accident severity category
   
@@ -116,7 +114,6 @@ numyearbi <- accidents |> group_by(AccidentYear, AccidentInvolvingBicycle) |>
   summarise(n=n())
 numyear <- numyearbi |> group_by(AccidentYear)  |> 
   summarise(n=n())
-  
 
 ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle, label=n)) +
   geom_bar(position="stack", stat="identity")+
@@ -125,7 +122,6 @@ ggplot(numyearbi, aes(x=AccidentYear, y=n,fill=AccidentInvolvingBicycle, label=n
   xlab("Year") +
   theme_bw()+
   guides(fill=guide_legend(title="Accident involves bicycles"))
-
 ```
 
 ## Task 4
@@ -138,8 +134,6 @@ Select only those accidents that involved a bicycle. **From now on, and for the 
 bike_accidents <- accidents |> 
   filter(AccidentInvolvingBicycle == "true")
 
-
-#Version normal
 ggplot() +
   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
   geom_sf(data = districts, color = "black", fill = NA) +
@@ -153,37 +147,6 @@ ggplot() +
                                           "severe injuries",
                                           "light injuries",
                                           "property damage"))
-#Version with alpha
-# ggplot() +
-#   geom_sf(data = bike_accidents, mapping = aes(color =AccidentSeverityCategory)) +
-#   geom_sf(data = districts, color = "black", fill = NA, ) +
-#   coord_sf(datum = NA)+
-#   theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
-#   theme_minimal()+
-#   scale_color_manual(values = c(alpha("red",alpha = 1.0), alpha("orange2",alpha = 0.8), alpha("gold",alpha = 0.8), alpha("blue",alpha = 0.8)),
-#                                name = "Accident Severity",
-#                                breaks = c("as1",  "as3","as2", "as4"),
-#                                labels = c("fatalities", 
-#                                           "severe injuries",
-#                                           "light injuries",
-#                                           "property damage"))
-# 
-# #Version with small multiples
-# ggplot() +
-#   geom_sf(data = bike_accidents, mapping = aes(color = AccidentSeverityCategory)) +
-#   geom_sf(data = districts, color = "black", fill = NA) +
-#   facet_wrap(~AccidentSeverityCategory)+
-#   coord_sf(datum = NA)+
-#   theme(legend.position = "bottom", panel.grid.major = element_line(colour = "transparent")) +
-#   theme_minimal()+
-#   theme(strip.text = element_blank())+
-#   scale_color_manual(values = c("red","orange2",  "gold", "blue"),
-#                                name = "Accident Severity",
-#                                breaks = c("as1",  "as3","as2", "as4"),
-#                                labels = c("fatalities", 
-#                                           "severe injuries",
-#                                           "light injuries",
-#                                           "property damage"))
 ```
 # bike accidents with fatalities
 ```{r}
@@ -240,8 +203,6 @@ KOMMENTAR
 ## Task 6
 From the bicycle accidents, extract the years 2018 to 2021 and compute clusters for each year separately, using a clustering method you deem appropriate for the task, and choose the control parameters appropriately to capture the types of clusters you had in mind in your definition of Task 5. Justify your choice.
 
-
-####Hier haben wir ne frage zur reihenfolge
 ```{r, echo=FALSE}
 bike_accidents2018 <- st_coordinates(bike_accidents |> 
   filter(AccidentYear == "2018"))
@@ -296,7 +257,7 @@ plot(ops_reach2019)
 plot(bike_accidents2019, cex = 0.4, pch = 19, col = ops_reach2019$cluster + 1, asp = 1)
 ```
 
-## reachability Plot 2020 data
+## reachability plot 2020 data
 ```{r, echo=FALSE}
 plot(ops_reach2020)
 ```
@@ -316,9 +277,6 @@ plot(ops_reach2021)
 plot(bike_accidents2021, cex = 0.4, pch = 19, col = ops_reach2021$cluster + 1, asp = 1)
 ```
 :::
-
-
-
 
 ```{r, echo=FALSE}
 ## cluster hulls 2018 data
@@ -380,7 +338,6 @@ bike_acc2019_clus <- st_as_sf(as.data.frame(cbind(bike_accidents2019, ops_reach2
 # summary(bike_acc2019_clus) # for 2019 data, there are 7 clusters
 
 # separate data into single clusters
-
 bike_acc2018_c1 <- bike_acc2018_clus |> 
   filter(V4 == 1)
 bike_acc2018_c2 <- bike_acc2018_clus |> 
@@ -389,23 +346,6 @@ bike_acc2018_c3 <- bike_acc2018_clus |>
   filter(V4 == 3)
 bike_acc2018_c4 <- bike_acc2018_clus |> 
   filter(V4 == 4)
-#  bike_acc2018_c5 <- bike_acc2018_clus |> 
-#    filter(V4 == 5)
-#  bike_acc2018_c6 <- bike_acc2018_clus |> 
-#    filter(V4 == 6)
-#  bike_acc2018_c7 <- bike_acc2018_clus |> 
-#    filter(V4 == 7)
-#  bike_acc2018_c8 <- bike_acc2018_clus |> 
-#    filter(V4 == 8)
-# bike_acc2018_c9 <- bike_acc2018_clus |> 
-#    filter(V4 == 9)
-# bike_acc2018_c10 <- bike_acc2018_clus |> 
-#    filter(V4 == 10)  
-# bike_acc2018_c11 <- bike_acc2018_clus |> 
-#    filter(V4 == 11)
-#  bike_acc2018_c12 <- bike_acc2018_clus |> 
-#    filter(V4 == 12)
-
 
 bike_acc2019_c1 <- bike_acc2019_clus |> 
   filter(V4 == 1)
@@ -421,20 +361,6 @@ bike_acc2019_c6 <- bike_acc2019_clus |>
   filter(V4 == 6)
 bike_acc2019_c7 <- bike_acc2019_clus |> 
   filter(V4 == 7)
-# bike_acc2019_c8 <- bike_acc2019_clus |> 
-#    filter(V4 == 8)
-# bike_acc2019_c9 <- bike_acc2019_clus |> 
-#    filter(V4 == 9)
-# bike_acc2019_c10 <- bike_acc2019_clus |> 
-#    filter(V4 == 10)
-# bike_acc2019_c11 <- bike_acc2019_clus |> 
-#    filter(V4 == 11)
-# bike_acc2019_c12 <- bike_acc2019_clus |> 
-#    filter(V4 == 12)
-# bike_acc2019_c13 <- bike_acc2019_clus |> 
-#    filter(V4 == 13)
-
-
 ```
 
 ```{r}
@@ -443,7 +369,7 @@ cave_acc2018_2 <- concaveman(bike_acc2018_c1, concavity = 2, length_threshold = 
 cave_acc2018_1 <- concaveman(bike_acc2018_c1, concavity = 1, length_threshold = 0)
 cave_acc2018_05 <- concaveman(bike_acc2018_c1, concavity = 0.5, length_threshold = 0) 
 
-#Compare concavity values
+# Compare concavity values
 #ggplot() +
   # geom_sf(data = districts, color = "black", fill = NA) +
   # geom_sf(data=bike_acc2018_c1, size = 0.5) +
@@ -463,15 +389,6 @@ bike_acc2018_c1_con <- concaveman(bike_acc2018_c1, concavity = 1, length_thresho
 bike_acc2018_c2_con <- concaveman(bike_acc2018_c2, concavity = 1, length_threshold = 0)
 bike_acc2018_c3_con <- concaveman(bike_acc2018_c3, concavity = 1, length_threshold = 0)
 bike_acc2018_c4_con <- concaveman(bike_acc2018_c4, concavity = 1, length_threshold = 0)
-#  bike_acc2018_c5_con <- concaveman(bike_acc2018_c5, concavity = 1, length_threshold = 0)
-#  bike_acc2018_c6_con <- concaveman(bike_acc2018_c6, concavity = 1, length_threshold = 0)
-#  bike_acc2018_c7_con <- concaveman(bike_acc2018_c7, concavity = 1, length_threshold = 0)
-# bike_acc2018_c8_con <- concaveman(bike_acc2018_c8, concavity = 1, length_threshold = 0)
-# bike_acc2018_c9_con <- concaveman(bike_acc2018_c9, concavity = 1, length_threshold = 0)
-# bike_acc2018_c10_con <- concaveman(bike_acc2018_c10, concavity = 1, length_threshold = 0)
-# bike_acc2018_c11_con <- concaveman(bike_acc2018_c11, concavity = 1, length_threshold = 0)
-# bike_acc2018_c12_con <- concaveman(bike_acc2018_c12, concavity = 1, length_threshold = 0)
-
 
 bike_acc2019_c1_con <- concaveman(bike_acc2019_c1, concavity = 1, length_threshold = 0)
 bike_acc2019_c2_con <- concaveman(bike_acc2019_c2, concavity = 1, length_threshold = 0)
@@ -480,15 +397,10 @@ bike_acc2019_c4_con <- concaveman(bike_acc2019_c4, concavity = 1, length_thresho
 bike_acc2019_c5_con <- concaveman(bike_acc2019_c5, concavity = 1, length_threshold = 0)
 bike_acc2019_c6_con <- concaveman(bike_acc2019_c6, concavity = 1, length_threshold = 0)
 bike_acc2019_c7_con <- concaveman(bike_acc2019_c7, concavity = 1, length_threshold = 0)
-# bike_acc2019_c8_con <- concaveman(bike_acc2019_c8, concavity = 1, length_threshold = 0)
-# bike_acc2019_c9_con <- concaveman(bike_acc2019_c9, concavity = 1, length_threshold = 0)
-# bike_acc2019_c10_con <- concaveman(bike_acc2019_c10, concavity = 1, length_threshold = 0)
-# bike_acc2019_c11_con <- concaveman(bike_acc2019_c11, concavity = 1, length_threshold = 0)
-# bike_acc2019_c12_con <- concaveman(bike_acc2019_c12, concavity = 1, length_threshold = 0)
-# bike_acc2019_c13_con <- concaveman(bike_acc2019_c13, concavity = 1, length_threshold = 0)
-
 ```
+
 ::: {.panel-tabset .nav-pills}
+
 ## clusters of bike accidents 2018
 ```{r}
 ggplot() +
@@ -501,30 +413,12 @@ ggplot() +
   geom_sf(data = bike_acc2018_c3_con, color = "seagreen", fill = alpha("seagreen", alpha=0.3)) + 
   geom_sf(data = bike_acc2018_c4, color = "black", size = 0.5) +
   geom_sf(data = bike_acc2018_c4_con, color = "chartreuse", fill = alpha("chartreuse", alpha=0.3)) + 
-  #  geom_sf(data = bike_acc2018_c5, color = "black", size = 0.5) +
-  #  geom_sf(data = bike_acc2018_c5_con, color = "blue", fill = alpha("blue", alpha=0.3)) + 
-  # geom_sf(data = bike_acc2018_c6, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c6_con, color = "lightblue", fill = alpha("lightblue", alpha=0.3)) + 
-  # geom_sf(data = bike_acc2018_c7, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c7_con, color = "orange", fill = alpha("orange", alpha=0.3)) + 
-  # geom_sf(data = bike_acc2018_c8, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c8_con, color = "red", fill = alpha("red", alpha=0.3)) +
-  # geom_sf(data = bike_acc2018_c9, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c9_con, color = "palevioletred2", fill = alpha("palevioletred2", alpha=0.3)) +
-  # geom_sf(data = bike_acc2018_c10, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c10_con, color = "khaki2", fill = alpha("khaki2", alpha=0.3)) +
-  # geom_sf(data = bike_acc2018_c11, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c11_con, color = "darkseagreen2", fill = alpha("darkseagreen2", alpha=0.3)) +
-  # geom_sf(data = bike_acc2018_c12, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2018_c12_con, color = "mediumspringgreen", fill = alpha("mediumspringgreen", alpha=0.3)) +
   theme_minimal() +
   coord_sf(datum = NA)
 ```
 
 ## clusters of bike accidents 2019
 ```{r}
-
-##remove clusters consisting of two points somehow
 ggplot() +
   geom_sf(data = districts, color = "black", fill = NA) +
   geom_sf(data = bike_acc2019_c1, color = "black", size = 0.5) +
@@ -541,28 +435,14 @@ ggplot() +
   geom_sf(data = bike_acc2019_c6_con, color = "lightblue",  fill = alpha("lightblue", alpha=0.3)) + 
   geom_sf(data = bike_acc2019_c7, color = "black", size = 0.5) +
   geom_sf(data = bike_acc2019_c7_con, color = "orange", fill = alpha("orange", alpha=0.3))  + 
-  # geom_sf(data = bike_acc2019_c8, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2019_c8_con, color = "red",  fill = alpha("red", alpha=0.3)) +
-  # geom_sf(data = bike_acc2019_c9, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2019_c9_con, color = "gold",  fill = alpha("gold", alpha=0.3)) + 
-  # geom_sf(data = bike_acc2019_c10, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2019_c10_con, color = "magenta",  fill = alpha("magenta", alpha=0.3))+
-  # geom_sf(data = bike_acc2019_c11, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2019_c11_con, color = "darkseagreen2", fill = alpha("darkseagreen2", alpha=0.3)) +
-  # # geom_sf(data = bike_acc2019_c12, color = "black", size = 0.5) +
-  # # geom_sf(data = bike_acc2019_c12_con, color = "mediumspringgreen", fill = alpha("mediumspringgreen", alpha=0.3)) +
-  # geom_sf(data = bike_acc2019_c13, color = "black", size = 0.5) +
-  # geom_sf(data = bike_acc2019_c13_con, color = "khaki2", fill = alpha("khaki2", alpha=0.3)) +
   theme_minimal() +
   coord_sf(datum = NA)
 ```
 
-##overlap of areas 
+## overlap of areas 
 ```{r}
 # Compute the Jaccard Index
 ## unify single polygons from 2018 and 2019
-
-
 pol18<- dplyr::bind_rows(list(bike_acc2018_c1_con, 
                      bike_acc2018_c2_con,bike_acc2018_c3_con))
 
@@ -573,22 +453,20 @@ pol19<- dplyr::bind_rows(list(bike_acc2019_c1_con, bike_acc2019_c2_con,
 poly2018<-st_union(pol18)
 poly2019<-st_union(pol19)
 
-
 ## compute intersection and union
 poly_18_19inters<- st_intersection(poly2019, poly2018)
 poly_18_19union<- st_union(poly2019, poly2018)
 
-
+## plot 
 plot(st_coordinates(poly2018), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
 plot(poly2018, col =alpha("cyan", 0.3), border = NA, add = TRUE)
 plot(poly2019, col =alpha("magenta", 0.3) , border = NA, add = TRUE)
 legend("bottomleft", legend=c("area 2018", "area 2019"),
        fill=c("cyan", "magenta"), cex=0.8)
-
 ```
 
-##Jaccard Index
+## Jaccard Index
 ```{r}
 cat("Area of 2018:", sf::st_area(poly2018), "m^2 \n",
     "Area of 2019:", sf::st_area(poly2019), "m^2 \n",
@@ -617,7 +495,7 @@ Choose any two years from the years 2018 to 2021 (justify your choice of years) 
 KOMMENTAR 
 
 ```{r}
- # get sf data for bike accidents in 2018 and 2019
+# get sf data for bike accidents in 2018 and 2019
 bike_accidents_sf <- bike_accidents|> 
   filter(bike_accidents$AccidentInvolvingBicycle == "true")
 
@@ -638,7 +516,6 @@ bike_acc2018_coords <- st_coordinates(bike_accidents_2018_sf)
 bike_acc2019_coords <- st_coordinates(bike_accidents_2019_sf)
 bike_acc2018_coords <- bike_acc2018_coords[,-3]
 bike_acc2019_coords <- bike_acc2019_coords[,-3]
-
 ```
 
 
@@ -655,27 +532,23 @@ win_bike_19 <- spatstat.geom::as.owin(sf::st_bbox(bike_accidents_2019_sf))
 bike_19_ppp <- spatstat.geom::ppp(x = bike_acc2019_coords[,1], y = bike_acc2019_coords[,2], window = win_bike_19)
 
 teststats_19 <- quadrat.test(bike_19_ppp, nx = 10, ny = 10)
-
 ```
 
 ::: {.panel-tabset .nav-pills}
-##Test for normal distribution 2018
+## Test for normal distribution 2018
 ```{r}
 teststats_18
 ```
 
-##Test for normal distribution 2019
+## Test for normal distribution 2019
 ```{r}
 teststats_19
 ```
-
 :::
-
 
 ```{r}
 bike_accidents_2018_sp <- as(bike_accidents_2018_sf, "Spatial")
 bike_accidents_2019_sp <- as(bike_accidents_2019_sf, "Spatial")
-
 
 bikes18_z<-st_zm(bike_accidents_2018_sf[,22])
 bikes19_z<-st_zm(bike_accidents_2019_sf[,22])
@@ -683,15 +556,13 @@ bikes19_z<-st_zm(bike_accidents_2019_sf[,22])
 bike_accidents_2018_sp <- as(bikes18_z, "Spatial")
 bike_accidents_2019_sp<- as(bikes19_z, "Spatial")
 
-
-#we adapt the percentage to the percentage of all points which was included in previous clustering to define the homerange
+# we adapt the percentage to the percentage of all points which was included in previous clustering to define the homerange
 # 609+6+4+9#628
 # 594+12+18+8+4+5+4#645
 # 
 # 100/692*628#90.75
 # 100/695*645#92.81
-#to use a round number and try to make them more compatible we are using 90 to get a comparable area
-
+# to use a round number and try to make them more compatible we are using 90 to get a comparable area
 
 ext_val <- 0.5   
 grid_val <- 500   #use val from earlier calculation
@@ -701,12 +572,7 @@ ud19 <- adehabitatHR::kernelUD(bike_accidents_2019_sp, grid = grid_val, extent =
 
 hr18_90 <- adehabitatHR::getverticeshr(ud18, percent = 90)  
 hr19_90 <- adehabitatHR::getverticeshr(ud19, percent = 90)  
-
 ```
-
-###Generating KDE
-
-
 
 ```{r}
 xmin19 <- min(ud19$ZH@coords[,1])
@@ -718,31 +584,22 @@ xmin18 <- min(ud18$ZH@coords[,1])
 xmax18 <- max(ud18$ZH@coords[,1])
 ymin18 <- min(ud18$ZH@coords[,2])
 ymax18 <- max(ud18$ZH@coords[,2])
-
 ```
 
 ::: {.panel-tabset .nav-pills}
-##Generating KDE for 2018 data -> sieht bei uns einfach scheisse aus
+## Generating KDE for 2018 data with HR 90 % 
 ```{r}
 graphics::image(ud18, xlab = "x [m]", ylab = "y [m]",
                 col = hcl.colors(200, palette = "heat 2", rev = TRUE))
-plot(hr18_90, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
-axis(1)
-axis(2, pos = xmin18 - 10)
-text(xmin18 - 15, ymin18 + (ymax18 - ymin18) / 2, "y [m]", 
-     adj = c(NA, -4), srt = 90)
+plot(hr18_90, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE) 
 title("", line = -0.3)
 ```
 
-##Generating KDE for 2018 data -> sieht bei uns einfach scheisse aus
+## Generating KDE for 2019 data with HR 90 % 
 ```{r}
 graphics::image(ud19, xlab = "x [m]", ylab = "y [m]",
                 col = hcl.colors(200, palette = "heat 2", rev = TRUE))
 plot(hr19_90, lty = 1, lwd = 2, border = "red", add = TRUE, axes = FALSE)
-axis(1)
-axis(2, pos = xmin19 - 10)
-text(xmin19 - 15, ymin19 + (ymax19 - ymin19) / 2, "y [m]", 
-     adj = c(NA, -4), srt = 90)
 title("", line = -0.3)
 ```
 :::
@@ -757,13 +614,10 @@ hr19_90sf <-st_as_sf(hr19_90)
 ## compute intersection and union
 polyhr_18_19inters<- st_intersection(hr19_90sf, hr18_90sf)
 polyhr_18_19union<- st_union(hr19_90sf, hr18_90sf)
-
-
-
 ```
 
 ::: {.panel-tabset .nav-pills}
-##overlap of areas 
+## overlap of areas 
 ```{r}
 plot(st_coordinates(hr18_90sf), xlab = "Easting [m]", ylab = "Northing [m]", 
      type = "n", asp = 1)
@@ -773,7 +627,7 @@ legend("bottomleft", legend=c("KDE area 2018", "KDE area 2019"),
        fill=c("cyan", "magenta"), cex=0.8)
 ```
 
-##Jaccard Index
+## Jaccard Index
 ```{r}
 cat("Area of 2018:", sf::st_area(hr18_90sf), "m^2 \n",
     "Area of 2019: ", sf::st_area(hr19_90sf), "m^2 \n",
@@ -819,13 +673,11 @@ plot(bike_accidents_enve, main = "")
 # We also apply the MAD test
 spatstat.explore::mad.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose = FALSE)
 spatstat.explore::dclf.test(bike_accidents_ppp, fun = Lest, nsim = 100, verbose = TRUE)
-
 ```
 :::
 
 * b. bicycle accidents for one of the years selected in Task 6 
 
-##hier haben wir ein Jahr zu viel, vorschlag 2019 raus
 
 ::: {.panel-tabset .nav-pills}
 ## L-Function 2018 data, with envelope
@@ -841,7 +693,6 @@ bike_accidents2018_enve <- spatstat.explore::envelope(bike_accidents2018_ppp, fu
                                          correction = "Ripley", verbose = FALSE)
 # Plot 
 plot(bike_accidents2018_enve, main = "")
-
 ```
 
 ## MAD & DCLF Test 2018 data
@@ -849,33 +700,8 @@ plot(bike_accidents2018_enve, main = "")
 # We also apply the MAD test
 spatstat.explore::mad.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = FALSE)
 spatstat.explore::dclf.test(bike_accidents2018_ppp, fun = Lest, nsim = 100, verbose = TRUE)
-
 ```
 :::
-
-
-```{r, echo=FALSE}
-## L-Function 2019 data, with envelope
-# Create a ppp object 
-# bike_accidents2019_coords <- sf::st_coordinates(bike_accidents_2019_sf)
-# win19 <- as.owin(st_bbox(bike_accidents_2019_sf))
-# bike_accidents2019_ppp <- spatstat.geom::ppp(x = bike_accidents2019_coords[,1], y =  bike_accidents2019_coords[,2],
-#                                          window = win19, unitname = c("meter", "meters"))
-# 
-# # Generate L-function
-# bike_accidents2019_enve <- spatstat.explore::envelope(bike_accidents2019_ppp, fun = Lest, nsim = 100, 
-#                                          correction = "Ripley", verbose = FALSE)
-# # Plot 
-# plot(bike_accidents2019_enve, main = "")
-```
-
-
-```{r, echo=FALSE}
-## MAD & DCLF Test 2019 data
-# We also apply the MAD test
-# spatstat.explore::mad.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = FALSE)
-# spatstat.explore::dclf.test(bike_accidents2019_ppp, fun = Lest, nsim = 100, verbose = TRUE)
-```
 
 * c. bicycle accidents for only the cluster points of the year selected in (b)
 
@@ -892,7 +718,6 @@ dist1_2018<-st_intersection(filter(bike_accidents, AccidentYear ==2018),district
 #   geom_sf(data=boundary, aes(color="white"))+
 #   geom_sf(data=dist1_2018, aes(color="black"))+
 #   theme(legend.position="none")#looks good
-
 ```
 
 
@@ -912,7 +737,6 @@ dist1_2018<-st_intersection(filter(bike_accidents, AccidentYear ==2018),district
 ## L-Function 2018 data, with envelope for district 1
 ```{r, echo=FALSE}
 # Create a ppp object 
-
 bike_accidents2018_coords1 <- sf::st_coordinates(dist1_2018)
 win18_1 <- as.owin(st_bbox(dist1_2018))
 bike_accidents2018_ppp_1 <- spatstat.geom::ppp(x = bike_accidents2018_coords1[,1], y =  bike_accidents2018_coords1[,2],
@@ -920,9 +744,9 @@ bike_accidents2018_ppp_1 <- spatstat.geom::ppp(x = bike_accidents2018_coords1[,1
 
 # Generate L-function
 bike_accidents2018_enve1 <- spatstat.explore::envelope(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, correction = "Ripley", verbose = FALSE)
+
 # Plot 
 plot(bike_accidents2018_enve1, main = "")
-
 ```
 
 ## MAD & DCLF Test 2018 data
@@ -930,9 +754,9 @@ plot(bike_accidents2018_enve1, main = "")
 # We also apply the MAD test
 spatstat.explore::mad.test(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, verbose = FALSE)
 spatstat.explore::dclf.test(bike_accidents2018_ppp_1, fun = Lest, nsim = 100, verbose = TRUE)
-
 ```
 :::
+
 KOMMENTAR
 
 ## Task 16
@@ -1008,7 +832,7 @@ zh_stat_zone <- read.csv("Session_5/data/stzh.adm_statzonen_v.csv")
 zh_stat_zone_sf <- st_as_sf(zh_stat_zone,wkt = "geometry", crs = 2056)
 zh_stat_zone_sf <- zh_stat_zone_sf[, c(1,2,3,9)]
 
-
+#set distance
 nn_dis <- 1500
 
 getisbikedata_df <- filter(accidents_no_geom,AccidentInvolvingBicycle == "true") 
@@ -1017,21 +841,19 @@ getisbikedata_df<-getisbikedata_df[,c(11,20,21,24)]
 # Calculate centroid
 zh_stat_zone_zentro <- st_centroid(zh_stat_zone_sf)
 
-
-### Create proportions for accident types
+# Create proportions for accident types
 getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
-
 getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
-
 getisbikedata_df$propdam <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with property damage", 1.0, 0.0))
-
 getisbikedata_df$fatal <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with fatalities", 1.0, 0.0))
 
-
+#turn into sf object
 getisbikedata_sf<-st_as_sf(getisbikedata_df,coords = c("AccidentLocation_CHLV95_E",  "AccidentLocation_CHLV95_N"), crs=2056)
 
+# join with stat zones
 getisbikedata_sf_join <- st_join(x = getisbikedata_sf, y = zh_stat_zone_sf, left = FALSE)
 
+# get summary for each stat zone
 smry <- getisbikedata_sf_join |> 
   group_by(stzname) |> 
   summarise(sum_lightinj = sum(lightinj),
@@ -1040,16 +862,15 @@ smry <- getisbikedata_sf_join |>
             sum_fatal = sum(fatal))
 smry_df <- st_drop_geometry(smry)
 
+# join summary with centroids
 acc_per_zentro <- full_join(zh_stat_zone_zentro, smry_df, by = "stzname")
 
-
+# get sums and percentage values for accidents
 acc_per_zentro <- acc_per_zentro  |> 
   rowwise() |> 
   mutate(sum_acc = sum(sum_lightinj,sum_severinj, sum_fatal, sum_propdam, na.rm = T))
 
-
 acc_per_zentro <- filter(acc_per_zentro, sum_acc > 0)
-
 
 acc_per_zentro <- acc_per_zentro  |> 
   mutate(per_lightinj = 1/sum_acc*sum_lightinj,
@@ -1057,13 +878,13 @@ acc_per_zentro <- acc_per_zentro  |>
          per_fatal = 1/sum_acc*sum_fatal,
          per_propdam = 1/sum_acc*sum_propdam)
 
-
+#generate df and sf for further use
 acc_per_zentro_df <- extract(acc_per_zentro, geometry, into = c('Lat', 'Lon'), '\\((.*),(.*)\\)', conv = T)
 acc_per_zentro_sf <- acc_per_zentro
 
 
 # create list of euclidean neighbors with min. distance = 0 and max. distance = nn_dis 
-bike_acc_nb <- spdep::dnearneigh(acc_per_zentro_sf, 0, nn_dis) # kann auch warnmeldungen generieren Warnmeldung:In spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 3 sub-graphs
+bike_acc_nb <- spdep::dnearneigh(acc_per_zentro_sf, 0, nn_dis) 
 
 # convert into list with spatial weights, B = binary weight
 bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
@@ -1072,16 +893,7 @@ bike_acc_lw <- spdep::nb2listw(spdep::include.self(bike_acc_nb), style = "B")
 # CRS needs to be set as it was carried over to the nb object.
 bike_acc_links <- 
    spdep::nb2lines(bike_acc_nb, coords = sf::st_geometry(acc_per_zentro_sf), as_sf = TRUE) |>
-   sf::st_set_crs(2056)#####hier haben sie keine warnmeldungIn spdep::dnearneigh(getisbikedata_sf, 0, nn_dis) : neighbour object has 33 sub-graphs
-# 
-# # Plot the neighbor links using functions from the tmap package
-tmap::tm_shape(districts) + 
-  tmap::tm_borders(col = "gray") +
-  tmap::tm_shape(bike_acc_links) + 
-  tmap::tm_lines(col = "red", lwd = 0.5) +
-  tmap::tm_shape(acc_per_zentro) +
-  tmap::tm_dots(col = "black", size = 0.1) +
-  tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+   sf::st_set_crs(2056)
 ```
 
 ::: {.panel-tabset .nav-pills}
@@ -1148,7 +960,6 @@ tmap::tm_shape(zh_stat_zone_sf) +
       inner.margins = c(0.05, 0.05, 0.05, 0.05)
     ) +
     tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-
 ```
 
 ### Gi*-statistic for fatal injuries
@@ -1160,28 +971,27 @@ s_lG_fatal <- sads_lG_fatal[1:length(sads_lG_fatal)]   # convert to vector
 tmp_sf_fatal <- bind_cols(acc_per_zentro_sf, as.data.frame(s_lG_fatal))
 
 
-# tmap::tm_shape(zh_stat_zone_sf) +
-#     tmap::tm_borders(col = "gray") +
-#     tmap::tm_shape(tmp_sf_fatal) +
-#     tmap::tm_dots(
-#       size = 0.2,
-#       col = "s_lG_fatal",
-#       n = 6,
-#       midpoint = 0,
-#       palette = "-RdYlBu",
-#       title.size = 0.2,
-#       title = paste("Deviation")
-#     ) +
-#     tmap::tm_layout(
-#       main.title.size = 1.0,
-#       main.title.fontface = "bold",
-#       main.title.position = c("left", "top"),
-#       legend.position = c("left", "top"),
-#       frame = FALSE,
-#       inner.margins = c(0.05, 0.05, 0.05, 0.05)
-#     ) +
-#     tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
-
+tmap::tm_shape(zh_stat_zone_sf) +
+    tmap::tm_borders(col = "gray") +
+    tmap::tm_shape(tmp_sf_fatal) +
+    tmap::tm_dots(
+      size = 0.2,
+      col = "s_lG_fatal",
+      n = 6,
+      midpoint = 0,
+      palette = "-RdYlBu",
+      title.size = 0.2,
+      title = paste("Deviation")
+    ) +
+    tmap::tm_layout(
+      main.title.size = 1.0,
+      main.title.fontface = "bold",
+      main.title.position = c("left", "top"),
+      legend.position = c("left", "top"),
+      frame = FALSE,
+      inner.margins = c(0.05, 0.05, 0.05, 0.05)
+    ) +
+    tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
 ```
 
 
@@ -1216,6 +1026,19 @@ tmap::tm_shape(zh_stat_zone_sf) +
     ) +
     tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
 ```
+
+### neighbor links within 1.5 km
+```{r, echo=FALSE}
+# # Plot the neighbor links using functions from the tmap package
+tmap::tm_shape(districts) + 
+  tmap::tm_borders(col = "gray") +
+  tmap::tm_shape(bike_acc_links) + 
+  tmap::tm_lines(col = "red", lwd = 0.5) +
+  tmap::tm_shape(acc_per_zentro) +
+  tmap::tm_dots(col = "black", size = 0.1) +
+  tmap::tm_scale_bar(position = c("right", "bottom"), width = 0.2)
+```
+
 :::
 
 
