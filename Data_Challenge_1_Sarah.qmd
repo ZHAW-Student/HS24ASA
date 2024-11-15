@@ -209,9 +209,6 @@ The area covered by clusters is similar for both years (2018 & 2019) with the cl
 The overall similarity between both years was expected to be low based on those years not containing any anormalites based on Covid-19. 
 
 
-#####Mehr
-
-
 ```{r, echo = FALSE, message = FALSE}
 
 #add cluster-id to each year
