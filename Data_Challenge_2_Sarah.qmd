@@ -143,7 +143,8 @@ nodes_heigo<-nodes[c(3449,23269),]
 nodes_heigo$name <-c("start","end")
 
 ggplot() +
-  geom_sf(data = districts[c(4,6,10,12),], fill = "lightgrey", color = "black", label=KNAME) +
+  geom_sf(data = districts[c(4,6,10,12),], fill = "lightgrey", color = "black")+
+  geom_sf_text(data = districts[c(4,6,10,12),], aes(label = KNAME),  nudge_x = 100, size = 3)+
   geom_sf(data = heigo_graph |>  activate(edges) |> st_as_sf(), lwd = 1, col = 'orange') + 
   geom_sf(data = nodes_heigo|> st_as_sf(), size = 2, col = 'orange')+
   geom_sf_text(data = nodes_heigo|> 
@@ -260,6 +261,7 @@ biking_network_no_stadttunnel |>
   filter(tunnel == 1)|>
   filter(highway == "construction") |>
   st_filter(bbox_hb, .predicates = st_intersects)
+
 ```
 
 ##Calculate Betweenness centrality for Network without the Stadttunnel
@@ -271,8 +273,6 @@ biking_network_no_stadttunnel <- biking_network_no_stadttunnel |>
 nodes_btw_no_stadttunnel<- biking_network |> 
   activate(nodes) 
 ```
-
-
 
 ::: {.panel-tabset .nav-pills}
 ##Betweenness centrality for center of Zürich with the Stadttunnel
@@ -305,37 +305,155 @@ ggplot() +
 ```
 :::
 
-This project does not really affect the betweenness centrality in the city center.
 
+##hier könnte man leaflet probieren---------------------------------------------------
+
+The project strongly increases the betweeness centrality of the nodes at the Drahtschmidlisteg across the Limmat, the Sihlquai as well as the Kasernenstrasse on the southern side of the trainstation.
 
 #Third part: Spatial Autocorrelation
+Three weeks ago, we created a regular grid covering Zurich’s bike network (Task 2). Today, you will use this grid for further analysis. You will also need data on road accidents and Zurich’s tree inventory (“Baumkataster”).
+The road accident data is available on Open Data Zurich (https://data.stadt-zuerich.ch/dataset/sid_dav_strassenverkehrsunfallorte). Filter this data to include only accidents involving bikes. If handling large datasets becomes challenging, you may exclude the category “Accident with property damage.” The tree inventory is accessible via Zurich’s Geodata portal (https://www.stadt-zuerich.ch/geodaten/download/Baumkataster). If processing the full inventory is difficult, feel free to use a representative or randomsubset of the tree data.
 
 * **Task 6:**  Determine the number of bike accidents occurring in each grid cell. Use the function st_contains if your grid is made up of polygons, or st_nearest_feature if it consists of points. Plot the Getis-Ord Gi statistic to visualise accident counts per cell. Assess whether the results are significant and identify where accident hot spots are located. If you recognise the locations, consider whether the hot spots share common characteristics or features.
 
+##Load data
+```{r}
+str(st_layers("Session_9/roadtrafficaccidentlocations.gpkg"))
+accidents <- st_read("Session_9/roadtrafficaccidentlocations.gpkg")
+bike_accidents <- accidents |> 
+  filter(AccidentInvolvingBicycle == "true" , !AccidentSeverityCategory == "as4") # removing the property damage beforehand
+st_crs(accidents)
+  
+str(st_layers("Session_9/Baumkataster/data/data.gpkg"))
+baumkataster <-st_read("Session_9/Baumkataster/data/data.gpkg",layer="gsz.baumstandorte_k")
+st_crs(baumkataster)
+
+```
+
+##Determine number of accidents per grid cell
+```{r}
+count_acc_hex <-st_contains(bike_accidents, hex_grid)
+#count_acc_hex2 <-st_contains(hex_grid,bike_accidents)# thats the wrong one
+
+```
+
+
+##Getis-Ord Gi
 ```{r}
 
 ```
 
 
-* **Task 7:** In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify
-your definition of “nearby.”
+* **Task 7:** In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
+
+Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest Roadtype bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. 
+
+As I also do not want to calculate this on a distance, which would make it to computationally taxing, I have to make some compromises. Therefore I choose a distance of 4m, which allows trees along 1. Klasse roads to be included.
+
+Double counting
+
+all this can be found in counts.rmd of session 10
 
 ```{r}
+
+sd<-st_is_within_distance(edges,baumkataster,dist = 8)#does not worl 
 
 ```
 
 
 * **Task 8:** Also, for a future task, count the number of accidents along each network edge.
 
+```{r}
+
+```
+
 
 #Fourth part: Spatial Autocorrelation
+There are a few automatic bicycle traffic counters in Zurich and nearby municipalities. To
+estimate traffic on all roads in the city, we want a regression model that best predicts the
+counts at these locations. The traffic counts of the city are published online. The locations
+of the counting machines is published on https://data.stadt-zuerich.ch/dataset/geo_standorte_
+der_automatischen_fuss__und_velozaehlungen while the individual counts are in a big CSV
+file: https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo/
+download/2022_verkehrszaehlungen_werte_fussgaenger_velo.csv.
+We provided the data for you in the file bike_counts_aggregated.rds. The script in counts.Rmd
+shows how the count data were downloaded and mapped to the bike network.
+
+##Load data
+```{r}
+bike_counts <- readRDS("Session_10/bike_counts_aggregated.rds")
+```
+
+
+* **Task 9:** Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least
+one of your two models should also use the (potentially transformed) tree counts per edge from
+Task 7. You may use additional predictors from my examples or whatever open data you can find
+elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see
+it and hopefully include it for future years.
+
+##Betweenness centrality model linear model
+```{r}
+bclinear
+```
+
+##Tree based linear model
+```{r}
+bclineartree
+
+```
 
 
 
+* **Task 10:** Compare the two models using at least one quantitative model comparison method.
+```{r}
+BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
+AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
 
-* **Task 14:** Define a (linear) mixed effects model to predict the number of accidents at an edge
-of the bicycle network from the (edge) centrality. You can freely transform variables and add
-other independent variables like the tree count. As groups for the random effects you can use the
-different road types (the highway property of the edges).
+model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
+                                          "multivariate", "extreme"),
+                                BIC = BIC, 
+                                AIC = AIC)
+
+```
+
+```{r}
+# Visualise the AIC and BIC for all models in a table
+flextable(model_performance) 
+```
+
+
+* **Task 11:** You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
+
+
+```{r}
+
+```
+
+
+#Fifth part: Spatial Regression
+This week, you will perform spatial regression to predict the number of accidents on the bicycle network. However, spatial regression models (both spatial lag and error models) require a huge amount of computation time and memory space, and it is probably difficult to analyze the whole network. In the following tasks, you can focus on some regions or districts of the city of Zurich so that you can finish your task within a practical computation time.
+
+* **Task 12:**  Construct a linear regression model to predict the number of accidents along network edges based on centrality measures and/or tree counts. You can freely transform variables and add other independent variables to seek a better model. Are the residuals spatially autocorrelated? (Note: Since the number of accidents is count data, Poisson regression makes more sense than simple linear regression, as you did in Task 11. However, use a simple linear regression model for this task so that you can compare the model performance against spatial regression models in Task 13).
+
+```{r}
+
+```
+
+
+* **Task 13:** Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression modelfrom Task 12.
+
+```{r}
+
+```
+
+
+#Sixth part: Spatial Autocorrelation
+
+* **Task 14:** Define a (linear) mixed effects model to predict the number of accidents at an edge of the bicycle network from the (edge) centrality. You can freely transform variables and add other independent variables like the tree count. As groups for the random effects you can use the different road types (the highway property of the edges).
 Note: Observations with NA values are simply omitted by the lmer() function. You could instead
 treat them as a separate group using replace_na
+
+```{r}
+
+```
+
