@@ -329,3 +329,13 @@ your definition of “nearby.”
 
 
 #Fourth part: Spatial Autocorrelation
+
+
+
+
+* **Task 14:** Define a (linear) mixed effects model to predict the number of accidents at an edge
+of the bicycle network from the (edge) centrality. You can freely transform variables and add
+other independent variables like the tree count. As groups for the random effects you can use the
+different road types (the highway property of the edges).
+Note: Observations with NA values are simply omitted by the lmer() function. You could instead
+treat them as a separate group using replace_na
