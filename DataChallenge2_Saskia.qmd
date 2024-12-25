@@ -336,7 +336,17 @@ bike_counts <- readRDS("bike_counts_aggregated.rds")
 Compare the two models using at least one quantitative model comparison method. 
 
 ```{r}
+# Compute the AIC and BIC
+BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
+AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
 
+model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
+                                          "multivariate", "extreme"),
+                                BIC = BIC, 
+                                AIC = AIC)
+
+# Visualise the AIC and BIC for all models in a table
+flextable(model_performance) 
 
 ```
 
