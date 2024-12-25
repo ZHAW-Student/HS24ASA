@@ -1,0 +1,379 @@
+---
+title: "Data Challenge 2"
+author: "Saskia Gianola"
+date: "January 2025"
+format: 
+  html:
+    embed-resources: true
+    fig_caption: true
+    fig-align: center
+    highlight: tango
+    number-sections: false
+    theme: journal
+    toc: true
+    toc_depth: 2
+    toc_float: true
+execute:                      # Set global options for execution of code blocks
+  echo: false
+  warning: false
+  message: false
+---
+```{r results='hide', message=FALSE, warning=FALSE}
+library(sf)
+library(rnaturalearth)
+library(igraph)
+library(tidygraph)
+library(tidyverse)
+library(sfnetworks)
+library(spdep)
+library(reshape2)
+library(broom)
+library(viridis)
+library(deldir)
+library(dbscan)
+library(gapminder)
+library(caret)
+library(flextable)
+library(titanic)
+library(pscl)
+library(terra)
+```
+# Part 1 Modeling networks
+## Task 1
+Describe the bicycle network. In particular, discuss properties that emerged in this week’s
+session, such as:
+– What are the attributes of the nodes and edges? 
+– How many nodes and edges are present in the network? 
+– Do the edges have geometries themselves, or are they merely relations between nodes that possess geometries?
+– Is the network connected? (Largely) planar? Weighted? Does it contain self-loops? 
+```{r}
+biking_network <- readRDS("Session6/biking_network.rds")
+boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
+districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
+
+biking_network
+
+# Extract attributes of edges
+edge_attr(biking_network)
+
+# Extract attributes of vertices
+vertex_attr(biking_network)
+
+```
+
+The bicycle network constists of 24191 nodes and 29694 edges. It is undirected. The attributes of the edges are the name of the street, information about wether it is a bridge or a tunnel or neither, as well as the level of the highway. The geomertry is linestring. also, there are information about the from and to points, and the osm ID. The vertices are points without further attributes. The network is largly planar and does not contain self loops. It is not weighted.
+
+## Task 2
+Create a regular grid (hexagonal or rectangular, your choice) that covers the same area as the bike network. Your grid should have a suitable resolution. As a guideline, when overlaid on the bike network, your grid should be large enough to group nodes belonging to the same intersection together, while being small enough to separate the various districts (Quartiere). You can derive a suitable resolution from the bike network data, such as by using k-nearest-neighbour distances between intersections, or you can provide a rationale for your choice. In either case, please explain your reasoning. Finally, convert your grid into a valid spatial network using an appropriate definition of spatial neighbourhood.
+
+```{r}
+# getting coordinates from nodes
+nodes <- biking_network |> 
+  activate("nodes") |> 
+  st_as_sf()
+
+edges <- biking_network |> 
+  activate("edges") |> 
+  st_as_sf()
+
+nodes_cor<-st_coordinates(nodes)
+```
+
+```{r}
+# take a look at distances within network
+kNNdistplot(nodes_cor, k=1)
+abline(h = 100, col = "red")
+abline(h = 75, col = "orange")
+abline(h = 50, col = "darkgreen")
+abline(h = 25, col = "blue")
+abline(h = 10, col = "purple")
+
+#create bounding box from edges of network
+bbox <- biking_network |>
+  activate("edges") |>
+  st_bbox()|> 
+  sf::st_as_sfc()
+
+# create grid with resolution of 50 m
+hex_grid <- sf::st_make_grid(bbox, what = "polygons", 
+                          cellsize = 50, square = FALSE, flat_topped = FALSE)
+
+square_grid<- sf::st_make_grid(bbox, what = "polygons", 
+                           cellsize = 50, square = TRUE)
+```
+
+
+# Part 2 Network measures
+## Task 3
+Have you ever cycled in Zürich? Compute and plot the optimal path from the starting point to the endpoint of a cycling route you are familiar with. You can use the biking_network.rds provided in Session 06, or adapt the CycleNetwork.rmd to create your own network. Compare the route inferred by the network with your preferred route.
+
+I have never cycled in the city of Zurich, but I am interested in the path from the mainstation to Oerlikon. I will try to compute the path between those two points. 
+
+```{r}
+oerlikon_bhf <- st_point(c(2683413.48, 1251832.48)) |> 
+  st_sfc(crs = 2056)
+
+ZurichHB <- st_point(c(2683125.01, 1247960.84)) |> 
+  st_sfc(crs = 2056)
+
+oerlikon_bhf_vertex <- st_nearest_feature(oerlikon_bhf, nodes)
+
+ZurichHB_vertex <- st_nearest_feature(ZurichHB, nodes)
+
+path <- shortest_paths(
+  graph = biking_network,
+  from = oerlikon_bhf_vertex,
+  to = ZurichHB_vertex,
+  output = 'both')
+
+# Turn the shortest path into a graph
+graph <- biking_network |> 
+    subgraph.edges(eids = path$epath |>  unlist(), 
+                   delete.vertices = FALSE) |> 
+    as_sfnetwork(node_key = "id")
+
+
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = "black")+
+  geom_sf_text(data = districts, aes(label = KNAME),  nudge_x = 100, size = 3)+
+  geom_sf(data = graph |>  activate(edges) |> st_as_sf(), lwd = 1, col = 'orange') + 
+  theme_void()
+
+```
+
+
+## Task 4
+In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
+• Why is it reasonable to assume that the measure you choose correlates with the amount of bike traffic? • What potential problems might arise with this measure? For example, the network contains many parallel paths in close proximity, which could influence measures that rely on shortest-path computations. • Plot your chosen measure for the network.
+
+I chose the betweenness centrality measure as it counts how many shortest paths go through a vertex. I assume that the bikers take the shortest path from A to B and therefore this measure seems appropriate. One possible problem might be that bikers choose a longer path that has less traffic or red lights. It is also possible that the shortest path has a lot of elevation that bikes might be wanting to avoid. Nevertheless, I think this meausure correlates most with the amout of bike traffic.
+
+```{r}
+# Compute the betweenness centrality
+biking_network <- biking_network |> 
+  activate("nodes") |> 
+  mutate(btw = betweenness(biking_network))
+
+
+# Plot the betweenness centrality
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+          aes(size=btw), col = "black") +  
+  theme_void()
+```
+
+
+## Task 5 
+A new bicycle infrastructure project, the “Stadttunnel” (https://www.stadt-zuerich.ch/site/velo/de/index/st adttunnel.html), is under construction, connecting the coordinates (8.53619°E, 47.37768°N) with (8.53783°E, 47.38024°N) beneath the station. Analyse how this project affects the network measure you selected in Task 4, and visualise the changes. Depending on when you retrieved the data from OSM, the Stadttunnel might already be included in the network or not. If you encounter difficulties removing or adding the edge, please refer to the script remove_or_add_edge.r available on OLAT.
+
+```{r}
+# test if the Stadttunnel is already included in my network
+# Define a bounding box around Zurich HB.
+bbox_hb <- 
+  st_sf(geom = st_sfc(st_point(c(8.5360556,  47.3798416)), 
+                      st_point(c(8.5400802, 47.3770750))), crs = 4326) |>
+  st_transform(crs = 2056) |>
+  st_bbox() |>
+  st_as_sfc()
+# Locate the Stadttunnel
+stadttunnel <- biking_network |> 
+  activate(edges) |>
+  st_as_sf() |>
+  filter(tunnel == 1) |>
+  filter(highway == "construction") |>
+  st_filter(bbox_hb, .predicates = st_intersects)
+
+# there is already an edge called velotunnel that is under construction
+# we need to remove the tunnel from the network in order to determine the influence on the centrality. 
+
+
+
+# Use the unique from and to IDs from the previous query to remove the tunnel.
+# (Explicitly specifying from and to is not strictly necessary but clarifies our intent.)
+
+biking_network_no_stadttunnel <- biking_network |> 
+  activate(edges) |> 
+  filter(from != stadttunnel |> pull (from), 
+         to != stadttunnel |> pull (to)) 
+
+# Check if the Stadttunnel was successfully removed.
+biking_network_no_stadttunnel |> 
+  activate(edges) |>
+  st_as_sf() |>
+  filter(tunnel == 1)|>
+  filter(highway == "construction") |>
+  st_filter(bbox_hb, .predicates = st_intersects)
+
+# the output is empty, meaning the Stadttunnel has been removed successfully
+
+# calculate betweenness centrality without Stadttunnel
+biking_network_no_stadttunnel <- biking_network_no_stadttunnel |> 
+  activate("nodes") |> 
+  mutate(btw = betweenness(biking_network_no_stadttunnel))
+
+```
+
+::: {.panel-tabset .nav-pills}
+##Betweenness centrality for center of Zürich with the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+          aes(size=btw), col = "black") +  
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
+  theme_void()
+
+```
+
+##Betweenness centrality for center of Zürich without the Stadttunnel
+
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network_no_stadttunnel %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network_no_stadttunnel %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+          aes(size=btw), col = "black") +  
+    coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
+  theme_void()
+
+```
+:::
+
+#### sehe noch keinen Unterschied
+
+# Part 3 Spatial Autocorrelation
+## Task 6 
+Determine the number of bike accidents occurring in each grid cell. Use the function st_contains if your grid is made up of polygons, or st_nearest_feature if it consists of points. Plot the Getis-Ord G i statistic to visualise accident counts per cell. Assess whether the results are significant and identify where accident hot spots are located. If you recognise the locations, consider whether the hot spots share common characteristics or features.
+
+# get additional data
+
+```{r}
+baumkataster_shp <- st_read("baumstandorte/gsz.baumkataster_baumstandorte.shp")
+st_crs(baumkataster_shp)
+
+accidents <- st_read("roadtrafficaccidentlocations.gpkg")
+st_crs(accidents)
+
+bike_accidents <- accidents |> 
+  filter(AccidentInvolvingBicycle == "true")
+
+```
+
+# bike accidents per grid cell
+
+```{r}
+count_acc_hex <-st_contains(bike_accidents, hex_grid)
+counts <- lengths((count_acc_hex))
+acc_in_hex <- hex_grid
+acc_in_hex$counts <- counts
+
+# grid to sf
+hex_grid_sf <- st_as_sf(hex_grid, crs = 2056)
+
+# Calculate centroid
+hex_centro <- st_centroid(hex_grid)
+
+# Create proportions for accident types
+getisbikedata_df <- bike_accidents
+getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
+getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
+getisbikedata_df$propdam <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with property damage", 1.0, 0.0))
+getisbikedata_df$fatal <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with fatalities", 1.0, 0.0))
+
+#turn into sf object
+getisbikedata_sf<-st_as_sf(getisbikedata_df,coords = c("AccidentLocation_CHLV95_E",  "AccidentLocation_CHLV95_N"), crs=2056)
+
+# join with grid
+getisbikedata_sf_join <- st_join(x = getisbikedata_sf, y = hex_grid_sf, left = FALSE)
+
+
+
+```
+
+
+## Task 7
+In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
+
+```{r}
+edges_sf <- biking_network |> 
+  activate("edges") |> 
+  st_as_sf()
+  
+edge_buffer <- st_buffer(edges_sf, dist = 10)
+trees <- st_within(edge_buffer, baumkataster_shp)
+
+```
+
+
+## Task 8
+Also, for a future task, count the number of accidents along each network edge.
+
+```{r}
+accident_points <- st_within(edge_buffer,bike_accidents)
+
+```
+
+# Part 4 Generalised Linear Regression
+## Task 9
+Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least one of your two models should also use the (potentially transformed) tree counts per edge from Task 7. You may use additional predictors from my examples or whatever open data you can find elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see it and hopefully include it for future years.
+
+```{r}
+bike_counts <- readRDS("bike_counts_aggregated.rds")
+
+```
+
+
+## Task 10
+Compare the two models using at least one quantitative model comparison method. 
+
+```{r}
+
+
+```
+
+
+## Task 11
+You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
+
+```{r}
+
+```
+
+
+# Part 5 Spatial Regression
+## Task 12
+Construct a linear regression model to predict the number of accidents along network edges based on centrality measures and/or tree counts. You can freely transform variables and add other independent variables to seek a better model. Are the residuals spatially autocorrelated? (Note: Since the number of accidents is count data, Poisson regression makes more sense than simple linear regression, as you did in Task 11. However, use a simple linear regression model for this task so that you can compare the model performance against spatial regression models in Task 13).
+
+```{r}
+
+```
+
+
+## Task 13
+Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression model from Task 12.
+
+```{r}
+
+```
+
+
+
+# Part 6: Spatial Autocorrelation
+## Task 14
+Define a (linear) mixed effects model to predict the number of accidents at an edge of the bicycle network from the (edge) centrality. You can freely transform variables and add other independent variables like the tree count. As groups for the random effects you can use the different road types (the highway property of the edges).
+Note: Observations with NA values are simply omitted by the lmer() function. You could instead
+treat them as a separate group using replace_na
+
+```{r}
+
+```
+
