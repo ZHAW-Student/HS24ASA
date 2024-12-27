@@ -46,7 +46,7 @@ session, such as:
 – How many nodes and edges are present in the network? 
 – Do the edges have geometries themselves, or are they merely relations between nodes that possess geometries?
 – Is the network connected? (Largely) planar? Weighted? Does it contain self-loops? 
-```{r}
+```{r results='hide'}
 biking_network <- readRDS("Session6/biking_network.rds")
 boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
 districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
@@ -61,13 +61,13 @@ vertex_attr(biking_network)
 
 ```
 
-The bicycle network constists of 24191 nodes and 29694 edges. It is undirected. The attributes of the edges are the name of the street, information about wether it is a bridge or a tunnel or neither, as well as the level of the highway. The geomertry is linestring. also, there are information about the from and to points, and the osm ID. The vertices are points without further attributes. The network is largly planar and does not contain self loops. It is not weighted.
+The bicycle network constists of 24191 nodes and 29694 edges. It is undirected. The attributes of the edges are the name of the street, information about whether it is a bridge or a tunnel or neither, as well as the level of the highway. The geometry is linestring. Also, there is information about the from and to points, and the OSM ID. The vertices are points without further attributes. The network is largely planar and does not contain self loops. It is not weighted.
 
 ## Task 2
 Create a regular grid (hexagonal or rectangular, your choice) that covers the same area as the bike network. Your grid should have a suitable resolution. As a guideline, when overlaid on the bike network, your grid should be large enough to group nodes belonging to the same intersection together, while being small enough to separate the various districts (Quartiere). You can derive a suitable resolution from the bike network data, such as by using k-nearest-neighbour distances between intersections, or you can provide a rationale for your choice. In either case, please explain your reasoning. Finally, convert your grid into a valid spatial network using an appropriate definition of spatial neighbourhood.
 
 ```{r}
-# getting coordinates from nodes
+# activate nodes and edges and save as sf object
 nodes <- biking_network |> 
   activate("nodes") |> 
   st_as_sf()
@@ -76,6 +76,7 @@ edges <- biking_network |>
   activate("edges") |> 
   st_as_sf()
 
+# getting coordinates from nodes
 nodes_cor<-st_coordinates(nodes)
 ```
 
@@ -88,7 +89,7 @@ abline(h = 50, col = "darkgreen")
 abline(h = 25, col = "blue")
 abline(h = 10, col = "purple")
 
-#create bounding box from edges of network
+# create bounding box from edges of network
 bbox <- biking_network |>
   activate("edges") |>
   st_bbox()|> 
@@ -146,7 +147,7 @@ ggplot() +
 In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
 • Why is it reasonable to assume that the measure you choose correlates with the amount of bike traffic? • What potential problems might arise with this measure? For example, the network contains many parallel paths in close proximity, which could influence measures that rely on shortest-path computations. • Plot your chosen measure for the network.
 
-I chose the betweenness centrality measure as it counts how many shortest paths go through a vertex. I assume that the bikers take the shortest path from A to B and therefore this measure seems appropriate. One possible problem might be that bikers choose a longer path that has less traffic or red lights. It is also possible that the shortest path has a lot of elevation that bikes might be wanting to avoid. Nevertheless, I think this meausure correlates most with the amout of bike traffic.
+I chose the betweenness centrality measure as it counts how many shortest paths go through a vertex. I assume that the bikers take the shortest path from A to B and therefore this measure seems appropriate. One possible problem might be that bikers choose a longer path that has less traffic or red lights. It is also possible that the shortest path has a lot of elevation that bikes might be wanting to avoid. Nevertheless, I think this measure correlates most with the amount of bike traffic.
 
 ```{r}
 # Compute the betweenness centrality
@@ -179,6 +180,7 @@ bbox_hb <-
   st_transform(crs = 2056) |>
   st_bbox() |>
   st_as_sfc()
+
 # Locate the Stadttunnel
 stadttunnel <- biking_network |> 
   activate(edges) |>
@@ -189,8 +191,6 @@ stadttunnel <- biking_network |>
 
 # there is already an edge called velotunnel that is under construction
 # we need to remove the tunnel from the network in order to determine the influence on the centrality. 
-
-
 
 # Use the unique from and to IDs from the previous query to remove the tunnel.
 # (Explicitly specifying from and to is not strictly necessary but clarifies our intent.)
@@ -218,7 +218,7 @@ biking_network_no_stadttunnel <- biking_network_no_stadttunnel |>
 ```
 
 ::: {.panel-tabset .nav-pills}
-##Betweenness centrality for center of Zürich with the Stadttunnel
+## Betweenness centrality for center of Zürich with the Stadttunnel
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
@@ -232,7 +232,7 @@ ggplot() +
 
 ```
 
-##Betweenness centrality for center of Zürich without the Stadttunnel
+## Betweenness centrality for center of Zürich without the Stadttunnel
 
 ```{r}
 ggplot() +
@@ -257,20 +257,44 @@ Determine the number of bike accidents occurring in each grid cell. Use the func
 # get additional data
 
 ```{r}
+# read tree data
 baumkataster_shp <- st_read("baumstandorte/gsz.baumkataster_baumstandorte.shp")
 st_crs(baumkataster_shp)
 
+# remove columns that are not needed
+colnames(baumkataster_shp)
+baumkataster_shp[3:16] <- list(NULL)
+colnames(baumkataster_shp)
+
+# read accident data
 accidents <- st_read("roadtrafficaccidentlocations.gpkg")
 st_crs(accidents)
 
+# only keep bike accidents
 bike_accidents <- accidents |> 
   filter(AccidentInvolvingBicycle == "true")
 
+# remove columns that are not needed
+colnames(bike_accidents)
+bike_accidents[3:6] <- list(NULL)
+
+colnames(bike_accidents)
+bike_accidents[4:10] <- list(NULL)
+
+colnames(bike_accidents)
+bike_accidents[5:8] <- list(NULL)
+
+colnames(bike_accidents)
+bike_accidents[10:22] <- list(NULL)
+
+colnames(bike_accidents)
+
 ```
 
-# bike accidents per grid cell
 
+# Getis-Ord G i statistic
 ```{r}
+# bike accidents per grid cell
 count_acc_hex <-st_contains(bike_accidents, hex_grid)
 counts <- lengths((count_acc_hex))
 acc_in_hex <- hex_grid
@@ -304,12 +328,16 @@ getisbikedata_sf_join <- st_join(x = getisbikedata_sf, y = hex_grid_sf, left = F
 In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
 ```{r}
+# write edges into sf object
 edges_sf <- biking_network |> 
   activate("edges") |> 
   st_as_sf()
-  
+
+# create buffer around edges
 edge_buffer <- st_buffer(edges_sf, dist = 10)
-trees <- st_within(edge_buffer, baumkataster_shp)
+
+# get amount of trees within buffered edges, largest = TRUE ensures there is no double-counting
+trees <- st_join(edge_buffer, baumkataster_shp, largest = TRUE)
 
 ```
 
@@ -318,8 +346,11 @@ trees <- st_within(edge_buffer, baumkataster_shp)
 Also, for a future task, count the number of accidents along each network edge.
 
 ```{r}
-accident_points <- st_within(edge_buffer,bike_accidents)
-
+# get amount of accidents within buffered edges
+accident_points <- st_join(edge_buffer,bike_accidents)
+accident_per_edge <- accident_points |> 
+  group_by(osm_id) |> 
+  summarise(count = n())
 ```
 
 # Part 4 Generalised Linear Regression
@@ -327,7 +358,131 @@ accident_points <- st_within(edge_buffer,bike_accidents)
 Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least one of your two models should also use the (potentially transformed) tree counts per edge from Task 7. You may use additional predictors from my examples or whatever open data you can find elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see it and hopefully include it for future years.
 
 ```{r}
+# Hourly Traffic at Night (`nn`) and Hourly Traffic at Daytime (`nt`).
 bike_counts <- readRDS("bike_counts_aggregated.rds")
+
+# join with biking network amount of trees and amount of accidents
+edges_join <- biking_network |> 
+  activate("edges") |> 
+  st_as_sf()
+
+edges_join <- st_join(edges_join, bike_counts, left = TRUE, largest = TRUE) 
+edges_join <- st_join(edges_join, trees, left = TRUE, largest = TRUE)
+edges_join <- st_join(edges_join, accident_points, left = TRUE, largest = TRUE)
+
+biking_network_btw <- biking_network |> 
+  activate("nodes") |> 
+  mutate(btw = betweenness(biking_network))|> 
+  st_as_sf()
+
+edges_join <- st_join(edges_join, biking_network_btw, left = TRUE, largest = TRUE)
+
+# clear data 
+colnames(edges_join)
+edges_join$btw[edges_join$btw == 0] <- NA
+
+```
+
+
+```{r}
+plot(edges_join$per_day~edges_join$btw)
+
+# no linear dependence between traffic and betweenness centrality
+
+# compute linear regression
+linear <- lm(per_day ~ btw, data = edges_join) # y ~ x
+
+# Retrieve the slope and intercept of the model
+linear_m <- linear$coefficients["btw"]
+linear_b <- linear$coefficients["(Intercept)"]
+
+# Plot the linear relationship between btw and traffic
+ggplot(edges_join) +
+  geom_point(aes(x = btw, y = per_day)) +
+  geom_line(
+    data=data.frame(x = 300:50000),
+    aes(x = x, y = linear_m * x + linear_b), color = "pink1", linewidth = 1) + 
+  xlab("Betweenness centrality") +
+  ylab("Number of accidents per day") +
+  theme_minimal()
+
+
+# Compute a linear regression model where log btw  predicts traffic
+loglinear <- lm(per_day ~ log(btw), data = edges_join)
+loglinear_m <- loglinear$coefficients["log(btw)"]
+loglinear_b <- loglinear$coefficients["(Intercept)"]
+
+# Plot the linear relationship between log btw and traffic
+ggplot(edges_join) +
+  geom_point(aes(x = btw, y = per_day)) +
+  geom_line(data = data.frame(x=300:50000),
+            aes(x = x, y = loglinear_m * log(x) + loglinear_b),  
+            color = "pink1", linewidth = 1) +
+  scale_x_continuous(trans = "log") +
+  xlab("Betweenness centrality") +
+  ylab("Number of accidents per day") +
+  theme_minimal()
+
+# Compute the RMSE of the linear and log-linear model
+rmse_linear <- sqrt(mean(residuals(linear)^2))
+rmse_loglinear <- sqrt(mean(residuals(loglinear)^2))
+
+rmse_linear
+rmse_loglinear
+
+# Show summary 
+summary(linear)
+summary(loglinear)
+
+#both approaches are not useful to predict traffic
+
+# Add the residuals of the log-linear model to the original data
+loglinear_res <- edges_join %>%  
+  mutate(residuals = per_day - loglinear$fitted.values)
+
+# Plot the residuals
+ggplot(loglinear_res) +
+  geom_point(aes(x = btw, y = residuals)) +
+  scale_x_continuous(trans = "log", breaks = c(400, 4000, 40000),
+                     name = "GDP per capita (USD)") +
+  scale_size_continuous(name = "population") +
+  xlab("GDP per capita") +
+  ylab("residuals") + 
+  theme_minimal()
+
+# Compute a linear regression model where trees predict traffic
+categorical <- lm(per_day ~ highway.x + 0, data = edges_join)
+rmse_categorical <- sqrt(mean(residuals(categorical)^2)) 
+
+# Plot the mean life expectancy per continent 
+ggplot(edges_join, aes(x = highway.x, y = per_day)) +
+  geom_boxplot() +
+  stat_summary(fun = mean, geom = "point", col = "pink1") + 
+  ylab("Life expectancy") +
+  xlab("GDP per capita (USD)") +
+  theme_minimal()
+
+
+# Compute a linear regression model where log GDP per capita and continent predict life expectancy 
+multivariate <- lm(per_day ~ log(btw) + highway.x, data = edges_join)
+rmse_multivariate <- sqrt(mean(residuals(multivariate)^2))
+
+multivariate_m <- multivariate$coefficients["log(gdpPercap)"]
+multivariate_b <- multivariate$coefficients["(Intercept)"]
+
+multivariate_bs <- c(multivariate_b, 
+                     multivariate_b + multivariate$coefficients["continentAmericas"],
+                     multivariate_b + multivariate$coefficients["continentAsia"],
+                     multivariate_b + multivariate$coefficients["continentEurope"],
+                     multivariate_b + multivariate$coefficients["continentOceania"])
+
+# Compute a linear regression model with a ridiculous number of predictors 
+extreme <- lm(per_day ~   + log(btw) + highway.x * poly(log(nt), 2) + 
+                highway.x * poly(poi_id, 6) +
+                highway.x * poly(log(btw), 3) * poly(nt, 3),
+              data = edges_join)
+
+rmse_extreme <- sqrt(mean(residuals(extreme)^2))
 
 ```
 
@@ -337,16 +492,16 @@ Compare the two models using at least one quantitative model comparison method.
 
 ```{r}
 # Compute the AIC and BIC
-BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
-AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
+BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate))
+AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate))
 
-model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
-                                          "multivariate", "extreme"),
-                                BIC = BIC, 
+model_performance <- data.frame(model = c("linear", "loglinear", "categorical",
+                                          "multivariate"),
+                                BIC = BIC,
                                 AIC = AIC)
 
 # Visualise the AIC and BIC for all models in a table
-flextable(model_performance) 
+flextable(model_performance)
 
 ```
 
@@ -355,6 +510,8 @@ flextable(model_performance)
 You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
 ```{r}
+poisson_model <- glm(art ~ ment, data = bioChemists, family = "poisson")
+summary(poisson_model)
 
 ```
 
