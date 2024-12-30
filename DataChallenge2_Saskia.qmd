@@ -37,6 +37,7 @@ library(flextable)
 library(titanic)
 library(pscl)
 library(terra)
+library(leaflet)
 ```
 # Part 1 Modeling networks
 ## Task 1
@@ -47,7 +48,8 @@ session, such as:
 – Do the edges have geometries themselves, or are they merely relations between nodes that possess geometries?
 – Is the network connected? (Largely) planar? Weighted? Does it contain self-loops? 
 ```{r results='hide'}
-biking_network <- readRDS("Session6/biking_network.rds")
+# read data
+biking_network <- readRDS("biking_network.rds")
 boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
 districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
 
@@ -99,8 +101,6 @@ bbox <- biking_network |>
 hex_grid <- sf::st_make_grid(bbox, what = "polygons", 
                           cellsize = 50, square = FALSE, flat_topped = FALSE)
 
-square_grid<- sf::st_make_grid(bbox, what = "polygons", 
-                           cellsize = 50, square = TRUE)
 ```
 
 
@@ -111,6 +111,7 @@ Have you ever cycled in Zürich? Compute and plot the optimal path from the star
 I have never cycled in the city of Zurich, but I am interested in the path from the mainstation to Oerlikon. I will try to compute the path between those two points. 
 
 ```{r}
+# determine start and end points
 oerlikon_bhf <- st_point(c(2683413.48, 1251832.48)) |> 
   st_sfc(crs = 2056)
 
@@ -121,6 +122,7 @@ oerlikon_bhf_vertex <- st_nearest_feature(oerlikon_bhf, nodes)
 
 ZurichHB_vertex <- st_nearest_feature(ZurichHB, nodes)
 
+# find shortest path
 path <- shortest_paths(
   graph = biking_network,
   from = oerlikon_bhf_vertex,
@@ -133,7 +135,7 @@ graph <- biking_network |>
                    delete.vertices = FALSE) |> 
     as_sfnetwork(node_key = "id")
 
-
+# plot shortest path within network
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = "black")+
   geom_sf_text(data = districts, aes(label = KNAME),  nudge_x = 100, size = 3)+
@@ -155,6 +157,10 @@ biking_network <- biking_network |>
   activate("nodes") |> 
   mutate(btw = betweenness(biking_network))
 
+biking_network_flip <- biking_network |> 
+  activate("edges") |> 
+  mutate(btw = edge_betweenness(biking_network))
+
 
 # Plot the betweenness centrality
 ggplot() +
@@ -163,6 +169,15 @@ ggplot() +
   geom_sf(data = biking_network %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
           col = 'white') +
   geom_sf(data = biking_network %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+          aes(size=btw), col = "black") +  
+  theme_void()
+
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network_flip %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network_flip %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
           aes(size=btw), col = "black") +  
   theme_void()
 ```
@@ -230,10 +245,19 @@ ggplot() +
   coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
   theme_void()
 
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  # Plot the entire network
+  geom_sf(data = biking_network_flip %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+          col = 'white') +
+  geom_sf(data = biking_network_flip %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+          aes(size=btw), col = "black") +  
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
+  theme_void()
+
 ```
 
 ## Betweenness centrality for center of Zürich without the Stadttunnel
-
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
@@ -248,13 +272,9 @@ ggplot() +
 ```
 :::
 
-#### sehe noch keinen Unterschied
-
 # Part 3 Spatial Autocorrelation
 ## Task 6 
 Determine the number of bike accidents occurring in each grid cell. Use the function st_contains if your grid is made up of polygons, or st_nearest_feature if it consists of points. Plot the Getis-Ord G i statistic to visualise accident counts per cell. Assess whether the results are significant and identify where accident hot spots are located. If you recognise the locations, consider whether the hot spots share common characteristics or features.
-
-# get additional data
 
 ```{r}
 # read tree data
@@ -307,11 +327,11 @@ hex_grid_sf <- st_as_sf(hex_grid, crs = 2056)
 hex_centro <- st_centroid(hex_grid)
 
 # Create proportions for accident types
-getisbikedata_df <- bike_accidents
-getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
-getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
-getisbikedata_df$propdam <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with property damage", 1.0, 0.0))
-getisbikedata_df$fatal <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with fatalities", 1.0, 0.0))
+ getisbikedata_df <- bike_accidents
+# getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
+# getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
+# getisbikedata_df$propdam <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with property damage", 1.0, 0.0))
+# getisbikedata_df$fatal <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with fatalities", 1.0, 0.0))
 
 #turn into sf object
 getisbikedata_sf<-st_as_sf(getisbikedata_df,coords = c("AccidentLocation_CHLV95_E",  "AccidentLocation_CHLV95_N"), crs=2056)
@@ -337,17 +357,18 @@ edges_sf <- biking_network |>
 edge_buffer <- st_buffer(edges_sf, dist = 10)
 
 # get amount of trees within buffered edges, largest = TRUE ensures there is no double-counting
-trees <- st_join(edge_buffer, baumkataster_shp, largest = TRUE)
+trees <- st_join(edge_buffer, baumkataster_shp, join = st_nearest_feature)
 
 ```
 
 
 ## Task 8
 Also, for a future task, count the number of accidents along each network edge.
-
 ```{r}
 # get amount of accidents within buffered edges
-accident_points <- st_join(edge_buffer,bike_accidents)
+accident_points <- st_join(edge_buffer,bike_accidents, join = st_nearest_feature)
+
+# summarise to get amount of accidents per edge
 accident_per_edge <- accident_points |> 
   group_by(osm_id) |> 
   summarise(count = n())
@@ -358,38 +379,57 @@ accident_per_edge <- accident_points |>
 Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least one of your two models should also use the (potentially transformed) tree counts per edge from Task 7. You may use additional predictors from my examples or whatever open data you can find elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see it and hopefully include it for future years.
 
 ```{r}
-# Hourly Traffic at Night (`nn`) and Hourly Traffic at Daytime (`nt`).
+# read bike count data: Hourly Traffic at Night (`nn`) and Hourly Traffic at Daytime (`nt`).
 bike_counts <- readRDS("bike_counts_aggregated.rds")
 
-# join with biking network amount of trees and amount of accidents
-edges_join <- biking_network |> 
-  activate("edges") |> 
+# Compute the line graph and evaluate the betweenness centrality of edges
+edges_join <- biking_network |>
+  morph(to_linegraph) |>
+  mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
+  unmorph() |> 
   st_as_sf()
 
+edges_join2 <- biking_network |>
+  morph(to_linegraph) |>
+  mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
+  unmorph() |> 
+  st_as_sf()
+
+# join with biking network amount of trees and amount of accidents
 edges_join <- st_join(edges_join, bike_counts, left = TRUE, largest = TRUE) 
 edges_join <- st_join(edges_join, trees, left = TRUE, largest = TRUE)
-edges_join <- st_join(edges_join, accident_points, left = TRUE, largest = TRUE)
+edges_join <- st_join(edges_join, accident_points, left = TRUE, join = st_nearest_feature)
 
-biking_network_btw <- biking_network |> 
-  activate("nodes") |> 
-  mutate(btw = betweenness(biking_network))|> 
-  st_as_sf()
+accident_per_joined_edge <- edges_join |>
+  filter(!is.na(AccidentUID)) |>
+  group_by(osm_id.x) |> 
+  mutate(count = n()) |> 
+  ungroup()
 
-edges_join <- st_join(edges_join, biking_network_btw, left = TRUE, largest = TRUE)
+# edges_join <- biking_network |> 
+#   activate("edges") |> 
+#   st_as_sf()
+# 
+# edges_join_graph <- biking_network |> 
+#   activate("edges")
+# biking_network_btw <- biking_network |> 
+#   activate("nodes") |> 
+#   mutate(btw = betweenness(biking_network))|> 
+#   st_as_sf()
+#
+# edges_join <- st_join(edges_join, biking_network_btw, left = TRUE, largest = TRUE)
 
-# clear data 
+# clean data 
 colnames(edges_join)
 edges_join$btw[edges_join$btw == 0] <- NA
+edges_join$highway <- factor(edges_join$highway)
+levels(edges_join$highway)
 
 ```
 
 
 ```{r}
-plot(edges_join$per_day~edges_join$btw)
-
-# no linear dependence between traffic and betweenness centrality
-
-# compute linear regression
+# compute linear regression 
 linear <- lm(per_day ~ btw, data = edges_join) # y ~ x
 
 # Retrieve the slope and intercept of the model
@@ -399,15 +439,13 @@ linear_b <- linear$coefficients["(Intercept)"]
 # Plot the linear relationship between btw and traffic
 ggplot(edges_join) +
   geom_point(aes(x = btw, y = per_day)) +
-  geom_line(
-    data=data.frame(x = 300:50000),
-    aes(x = x, y = linear_m * x + linear_b), color = "pink1", linewidth = 1) + 
+  geom_abline(slope = linear_m, intercept = linear_b, color = "blue", linetype = "solid") +
   xlab("Betweenness centrality") +
   ylab("Number of accidents per day") +
   theme_minimal()
 
 
-# Compute a linear regression model where log btw  predicts traffic
+# Compute a linear regression model where log btw predicts traffic
 loglinear <- lm(per_day ~ log(btw), data = edges_join)
 loglinear_m <- loglinear$coefficients["log(btw)"]
 loglinear_b <- loglinear$coefficients["(Intercept)"]
@@ -415,9 +453,7 @@ loglinear_b <- loglinear$coefficients["(Intercept)"]
 # Plot the linear relationship between log btw and traffic
 ggplot(edges_join) +
   geom_point(aes(x = btw, y = per_day)) +
-  geom_line(data = data.frame(x=300:50000),
-            aes(x = x, y = loglinear_m * log(x) + loglinear_b),  
-            color = "pink1", linewidth = 1) +
+    geom_abline(slope = loglinear_m, intercept = loglinear_b, color = "blue", linetype = "solid") +
   scale_x_continuous(trans = "log") +
   xlab("Betweenness centrality") +
   ylab("Number of accidents per day") +
@@ -444,45 +480,78 @@ loglinear_res <- edges_join %>%
 ggplot(loglinear_res) +
   geom_point(aes(x = btw, y = residuals)) +
   scale_x_continuous(trans = "log", breaks = c(400, 4000, 40000),
-                     name = "GDP per capita (USD)") +
-  scale_size_continuous(name = "population") +
-  xlab("GDP per capita") +
-  ylab("residuals") + 
+                     name = "Betweenness centrality") +
+  xlab("Betweenness centrality") +
+  ylab("Number of accidents per day") +
   theme_minimal()
 
-# Compute a linear regression model where trees predict traffic
-categorical <- lm(per_day ~ highway.x + 0, data = edges_join)
+
+# Compute a linear regression model where highway type predicts traffic
+categorical <- lm(per_day ~ highway + 0, data = edges_join)
 rmse_categorical <- sqrt(mean(residuals(categorical)^2)) 
 
-# Plot the mean life expectancy per continent 
-ggplot(edges_join, aes(x = highway.x, y = per_day)) +
+# Plot the mean traffic per highway type 
+ggplot(edges_join, aes(x = highway, y = per_day)) +
   geom_boxplot() +
   stat_summary(fun = mean, geom = "point", col = "pink1") + 
+  xlab("Betweenness centrality") +
+  ylab("Number of accidents per day") +
+  theme_minimal()
+
+# Compute a linear regression model where log btw and highway type predict traffic 
+multivariate <- lm(per_day ~ log(btw) + highway, data = edges_join)
+rmse_multivariate <- sqrt(mean(residuals(multivariate)^2))
+
+multivariate_m <- multivariate$coefficients["log(btw)"]
+multivariate_b <- multivariate$coefficients["(Intercept)"]
+
+multivariate_bs <- c(multivariate_b, 
+                     multivariate_b + multivariate$coefficients["highwayresidential"],
+                     multivariate_b + multivariate$coefficients["highwayservice"],
+                     multivariate_b + multivariate$coefficients["highwaytertiary"])
+
+# Plot the regression lines 
+ggplot(edges_join) +
+  geom_point(aes(x = btw, y = per_day, colour = highway)) +
+  geom_line(
+    data = data.frame(x = seq(300, 50000, by = 100)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[1], color = "highwayresidential")) +
+  geom_line(
+    data = data.frame(x = seq(300, 50000, by = 100)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[2], color = "highwayservice")) +
+  geom_line(
+    data = data.frame(x = seq(300, 50000, by = 100)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[3], color = "highwaytertiary")) +
+  scale_x_continuous(trans = "log", breaks = c(400,4000,40000)) +
+  scale_size_continuous(name = "population") +
   ylab("Life expectancy") +
   xlab("GDP per capita (USD)") +
   theme_minimal()
 
 
-# Compute a linear regression model where log GDP per capita and continent predict life expectancy 
-multivariate <- lm(per_day ~ log(btw) + highway.x, data = edges_join)
-rmse_multivariate <- sqrt(mean(residuals(multivariate)^2))
-
-multivariate_m <- multivariate$coefficients["log(gdpPercap)"]
-multivariate_b <- multivariate$coefficients["(Intercept)"]
-
-multivariate_bs <- c(multivariate_b, 
-                     multivariate_b + multivariate$coefficients["continentAmericas"],
-                     multivariate_b + multivariate$coefficients["continentAsia"],
-                     multivariate_b + multivariate$coefficients["continentEurope"],
-                     multivariate_b + multivariate$coefficients["continentOceania"])
-
 # Compute a linear regression model with a ridiculous number of predictors 
-extreme <- lm(per_day ~   + log(btw) + highway.x * poly(log(nt), 2) + 
-                highway.x * poly(poi_id, 6) +
-                highway.x * poly(log(btw), 3) * poly(nt, 3),
-              data = edges_join)
+# extreme <- lm(per_day ~   + log(btw) + highway * poly(log(nt), 2) + 
+#                 highway.x * poly(poi_id, 6) +
+#                 highway.x * poly(log(btw), 3) * poly(nt, 3),
+#               data = edges_join)
+# 
+# rmse_extreme <- sqrt(mean(residuals(extreme)^2))
 
-rmse_extreme <- sqrt(mean(residuals(extreme)^2))
+
+# compute glm
+model_glm <- glm(per_day ~ btw, data = edges_join, family = binomial)
+summary(model_glm)
+
+intercept_glm <- model_glm$coefficients[[1]]
+slope_glm <- model_glm$coefficients[[2]]
+
+ggplot(data = edges_join) +
+  geom_point(aes(x = btw, y = per_day)) +
+  geom_line(data = data.frame(x = seq(0, 600, by = 0.1)),
+            aes(x = x, y = 1/(1 + exp(- intercept_glm - slope_glm * x))),
+            color = "red",
+            linewidth = 1.5) +
+  theme_minimal()
 
 ```
 
@@ -510,8 +579,57 @@ flextable(model_performance)
 You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
 ```{r}
-poisson_model <- glm(art ~ ment, data = bioChemists, family = "poisson")
+poisson_model <- glm(count ~ btw, data = accident_per_joined_edge, family = "poisson")
 summary(poisson_model)
+
+#Retrieve coefficients
+intercept_poisson <- poisson_model$coefficient[1]
+slope_poisson <- poisson_model$coefficient[2]
+
+lambda_hat <- predict(poisson_model, type = "response")
+prob_no_accidents <- exp(-lambda_hat)
+
+ggplot(accident_per_joined_edge, aes(x = btw, y = count)) +
+  geom_point(aes(color = factor(count)), size = 3) + # Punkte für die tatsächlichen Unfälle
+  geom_line(aes(x = btw, y = prob_no_accidents * max(count)), color = "blue", size = 1) + # Poisson-Kurve
+  labs(
+    title = "Poisson-Modell: Wahrscheinlichkeiten für keine Unfälle",
+    x = "Zentralitätsmaß",
+    y = "Anzahl der Unfälle / Wahrscheinlichkeit für keine Unfälle",
+    subtitle = "Blaue Linie: Wahrscheinlichkeit für keine Unfälle"
+  ) +
+  theme_minimal() 
+
+ggplot(accident_per_joined_edge, aes(x = btw, y = prob_no_accidents)) +
+  geom_point(aes(color = factor(count)), size = 3) + 
+  geom_line(aes(x = btw, y = prob_no_accidents), color = "blue", size = 1) +
+  labs(
+    title = "Wahrscheinlichkeit für keine Unfälle auf Basis des Zentralitätsmaßes",
+    x = "Zentralitätsmaß",
+    y = "Wahrscheinlichkeit für keine Unfälle",
+    subtitle = "Poisson-Modell basierend auf Zentralitätsmaß"
+  ) +
+  theme_minimal()
+
+ggplot(accident_per_joined_edge, aes(x = count)) +
+  geom_bar(stat = "count", fill = "lightblue", color = "black") +
+  labs(
+    title = "Häufigkeit von Unfällen auf verschiedenen Straßenabschnitten",
+    x = "Anzahl der Unfälle",
+    y = "Häufigkeit"
+  ) +
+  theme_minimal()
+
+
+ggplot(accident_per_joined_edge) +
+  geom_sf(aes(color = prob_no_accidents), size = 2) +  # Straßenabschnitte einfärben
+  scale_color_viridis_c(option = "C", name = "Wahrscheinlichkeit für\nkeinen Unfall") +  # Farbskala
+  labs(
+    title = "Färbung der Straßenabschnitte nach Wahrscheinlichkeit für keine Unfälle",
+    subtitle = "Poisson-Modell basierend auf Zentralitätsmaß"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")  # Legende unten platzieren
 
 ```
 
