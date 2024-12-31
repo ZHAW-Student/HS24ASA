@@ -70,13 +70,20 @@ Create a regular grid (hexagonal or rectangular, your choice) that covers the sa
 
 ```{r}
 # activate nodes and edges and save as sf object
-nodes <- biking_network |> 
+nodes_sf <- biking_network |> 
   activate("nodes") |> 
   st_as_sf()
 
-edges <- biking_network |> 
+edges_sf <- biking_network |> 
   activate("edges") |> 
   st_as_sf()
+
+# activate nodes and edges and save as network
+nodes <- biking_network |> 
+  activate("nodes") 
+
+edges <- biking_network |> 
+  activate("edges")
 
 # getting coordinates from nodes
 nodes_cor<-st_coordinates(nodes)
@@ -153,32 +160,40 @@ I chose the betweenness centrality measure as it counts how many shortest paths 
 
 ```{r}
 # Compute the betweenness centrality
-biking_network <- biking_network |> 
+biking_network_nodes <- nodes |> 
   activate("nodes") |> 
   mutate(btw = betweenness(biking_network))
 
-biking_network_flip <- biking_network |> 
+biking_network_edges <- edges |> 
   activate("edges") |> 
   mutate(btw = edge_betweenness(biking_network))
+
+biking_network_nodes_sf <- nodes |> 
+  activate("nodes") |> 
+  mutate(btw = betweenness(biking_network)) |> 
+  st_as_sf()
+
+biking_network_edges_sf <- edges |> 
+  activate("edges") |> 
+  mutate(btw = edge_betweenness(biking_network)) |> 
+  st_as_sf()
 
 
 # Plot the betweenness centrality
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   # Plot the entire network
-  geom_sf(data = biking_network %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+  geom_sf(data = biking_network_edges |>  activate(edges) |>  as_tibble() |>  st_as_sf(), 
           col = 'white') +
-  geom_sf(data = biking_network %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+  geom_sf(data = biking_network_nodes |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
           aes(size=btw), col = "black") +  
   theme_void()
 
+# Plot using ggplot
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
-  # Plot the entire network
-  geom_sf(data = biking_network_flip %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
-          col = 'white') +
-  geom_sf(data = biking_network_flip %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
-          aes(size=btw), col = "black") +  
+  geom_sf(data = biking_network_edges_sf, aes(color = btw), size = 1) +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
   theme_void()
 ```
 
@@ -230,45 +245,68 @@ biking_network_no_stadttunnel <- biking_network_no_stadttunnel |>
   activate("nodes") |> 
   mutate(btw = betweenness(biking_network_no_stadttunnel))
 
+biking_network_no_stadttunnel_sf <- biking_network_no_stadttunnel |> 
+  activate("edges") |> 
+  mutate(btw = edge_betweenness(biking_network_no_stadttunnel)) |> 
+  st_as_sf()
+
 ```
 
 ::: {.panel-tabset .nav-pills}
-## Betweenness centrality for center of Zürich with the Stadttunnel
+## Betweenness centrality nodes for center of Zürich with the Stadttunnel
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   # Plot the entire network
-  geom_sf(data = biking_network %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+  geom_sf(data = biking_network_edges |>  activate(edges) |>  as_tibble() |>  st_as_sf(), 
           col = 'white') +
-  geom_sf(data = biking_network %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
-          aes(size=btw), col = "black") +  
-  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
-  theme_void()
-
-ggplot() +
-  geom_sf(data = districts, fill = "lightgrey", color = NA) +
-  # Plot the entire network
-  geom_sf(data = biking_network_flip %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
-          col = 'white') +
-  geom_sf(data = biking_network_flip %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+  geom_sf(data = biking_network_nodes |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
           aes(size=btw), col = "black") +  
   coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
   theme_void()
 
 ```
 
-## Betweenness centrality for center of Zürich without the Stadttunnel
+## Betweenness centrality edges for center of Zürich with the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = biking_network_edges_sf, aes(color = btw), size = 10) +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal"
+  )
+```
+
+## Betweenness centrality nodes for center of Zürich without the Stadttunnel
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   # Plot the entire network
-  geom_sf(data = biking_network_no_stadttunnel %>% activate(edges) %>% as_tibble() %>% st_as_sf(), 
+  geom_sf(data = biking_network_no_stadttunnel |>  activate(edges) |>  as_tibble() |>  st_as_sf(), 
           col = 'white') +
-  geom_sf(data = biking_network_no_stadttunnel %>% activate(nodes) %>% as_tibble() %>% st_as_sf(), 
+  geom_sf(data = biking_network_no_stadttunnel |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
           aes(size=btw), col = "black") +  
     coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
   theme_void()
 
+```
+
+## Betweenness centrality edges for center of Zürich without the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = biking_network_no_stadttunnel_sf, aes(color = btw), size = 3) +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal"
+  )
 ```
 :::
 
@@ -348,16 +386,20 @@ getisbikedata_sf_join <- st_join(x = getisbikedata_sf, y = hex_grid_sf, left = F
 In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
 ```{r}
-# write edges into sf object
-edges_sf <- biking_network |> 
-  activate("edges") |> 
-  st_as_sf()
-
 # create buffer around edges
-edge_buffer <- st_buffer(edges_sf, dist = 10)
+edge_buffer <- st_buffer(edges_sf, dist = 8)
 
-# get amount of trees within buffered edges, largest = TRUE ensures there is no double-counting
-trees <- st_join(edge_buffer, baumkataster_shp, join = st_nearest_feature)
+# connect trees with buffered edges
+trees <- st_join(edge_buffer, baumkataster_shp, left = FALSE)
+
+# calculate distance between trees and edges
+trees$distance <- st_distance(trees, edge_buffer)
+
+# only keep nearest edge per tree = avoid double counting
+joined_trees <- trees |> 
+  group_by(accident_point_id) |>   
+  slice_min(order_by = distance, n = 1) |>   
+  ungroup()
 
 ```
 
@@ -382,29 +424,41 @@ Construct two different models to extrapolate bike traffic on Zurich’s roads. 
 # read bike count data: Hourly Traffic at Night (`nn`) and Hourly Traffic at Daytime (`nt`).
 bike_counts <- readRDS("bike_counts_aggregated.rds")
 
-# Compute the line graph and evaluate the betweenness centrality of edges
-edges_join <- biking_network |>
-  morph(to_linegraph) |>
-  mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
-  unmorph() |> 
-  st_as_sf()
+# join sf of edges containing btw with bike counts, trees and accident points
+joined_data <- st_join(biking_network_edges_sf, bike_counts, left = TRUE, largest = TRUE)
+joined_data <- st_join(joined_data, trees, left = TRUE, largest = TRUE)
+joined_data <- st_join(joined_data, accident_points, left = TRUE, join = st_nearest_feature)
 
-edges_join2 <- biking_network |>
-  morph(to_linegraph) |>
-  mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
-  unmorph() |> 
-  st_as_sf()
-
-# join with biking network amount of trees and amount of accidents
-edges_join <- st_join(edges_join, bike_counts, left = TRUE, largest = TRUE) 
-edges_join <- st_join(edges_join, trees, left = TRUE, largest = TRUE)
-edges_join <- st_join(edges_join, accident_points, left = TRUE, join = st_nearest_feature)
-
-accident_per_joined_edge <- edges_join |>
+accident_per_joined_edge <- joined_data |>
   filter(!is.na(AccidentUID)) |>
   group_by(osm_id.x) |> 
   mutate(count = n()) |> 
   ungroup()
+
+
+# Compute the line graph and evaluate the betweenness centrality of edges
+# edges_join <- biking_network |>
+#   morph(to_linegraph) |>
+#   mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
+#   unmorph() |> 
+#   st_as_sf()
+# 
+# edges_join2 <- biking_network |>
+#   morph(to_linegraph) |>
+#   mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
+#   unmorph() |> 
+#   st_as_sf()
+# 
+# # join with biking network amount of trees and amount of accidents
+# edges_join <- st_join(edges_join, bike_counts, left = TRUE, largest = TRUE) 
+# edges_join <- st_join(edges_join, trees, left = TRUE, largest = TRUE)
+# edges_join <- st_join(edges_join, accident_points, left = TRUE, join = st_nearest_feature)
+
+# accident_per_joined_edge <- edges_join |>
+#   filter(!is.na(AccidentUID)) |>
+#   group_by(osm_id.x) |> 
+#   mutate(count = n()) |> 
+#   ungroup()
 
 # edges_join <- biking_network |> 
 #   activate("edges") |> 
@@ -420,24 +474,24 @@ accident_per_joined_edge <- edges_join |>
 # edges_join <- st_join(edges_join, biking_network_btw, left = TRUE, largest = TRUE)
 
 # clean data 
-colnames(edges_join)
-edges_join$btw[edges_join$btw == 0] <- NA
-edges_join$highway <- factor(edges_join$highway)
-levels(edges_join$highway)
+colnames(accident_per_joined_edge)
+accident_per_joined_edge$btw[accident_per_joined_edge$btw == 0] <- NA
+accident_per_joined_edge$highway.x <- factor(accident_per_joined_edge$highway.x)
+levels(accident_per_joined_edge$highway.x)
 
 ```
 
 
 ```{r}
 # compute linear regression 
-linear <- lm(per_day ~ btw, data = edges_join) # y ~ x
+linear <- lm(per_day ~ btw, data = accident_per_joined_edge) # y ~ x
 
 # Retrieve the slope and intercept of the model
 linear_m <- linear$coefficients["btw"]
 linear_b <- linear$coefficients["(Intercept)"]
 
 # Plot the linear relationship between btw and traffic
-ggplot(edges_join) +
+ggplot(accident_per_joined_edge) +
   geom_point(aes(x = btw, y = per_day)) +
   geom_abline(slope = linear_m, intercept = linear_b, color = "blue", linetype = "solid") +
   xlab("Betweenness centrality") +
@@ -446,12 +500,12 @@ ggplot(edges_join) +
 
 
 # Compute a linear regression model where log btw predicts traffic
-loglinear <- lm(per_day ~ log(btw), data = edges_join)
+loglinear <- lm(per_day ~ log(btw), data = accident_per_joined_edge)
 loglinear_m <- loglinear$coefficients["log(btw)"]
 loglinear_b <- loglinear$coefficients["(Intercept)"]
 
 # Plot the linear relationship between log btw and traffic
-ggplot(edges_join) +
+ggplot(accident_per_joined_edge) +
   geom_point(aes(x = btw, y = per_day)) +
     geom_abline(slope = loglinear_m, intercept = loglinear_b, color = "blue", linetype = "solid") +
   scale_x_continuous(trans = "log") +
@@ -470,10 +524,10 @@ rmse_loglinear
 summary(linear)
 summary(loglinear)
 
-#both approaches are not useful to predict traffic
+# both approaches are not useful to predict traffic
 
 # Add the residuals of the log-linear model to the original data
-loglinear_res <- edges_join %>%  
+loglinear_res <- accident_per_joined_edge |>   
   mutate(residuals = per_day - loglinear$fitted.values)
 
 # Plot the residuals
@@ -487,11 +541,11 @@ ggplot(loglinear_res) +
 
 
 # Compute a linear regression model where highway type predicts traffic
-categorical <- lm(per_day ~ highway + 0, data = edges_join)
+categorical <- lm(per_day ~ highway.x + 0, data = accident_per_joined_edge)
 rmse_categorical <- sqrt(mean(residuals(categorical)^2)) 
 
 # Plot the mean traffic per highway type 
-ggplot(edges_join, aes(x = highway, y = per_day)) +
+ggplot(accident_per_joined_edge, aes(x = highway.x, y = per_day)) +
   geom_boxplot() +
   stat_summary(fun = mean, geom = "point", col = "pink1") + 
   xlab("Betweenness centrality") +
@@ -499,7 +553,7 @@ ggplot(edges_join, aes(x = highway, y = per_day)) +
   theme_minimal()
 
 # Compute a linear regression model where log btw and highway type predict traffic 
-multivariate <- lm(per_day ~ log(btw) + highway, data = edges_join)
+multivariate <- lm(per_day ~ log(btw) + highway.x, data = accident_per_joined_edge)
 rmse_multivariate <- sqrt(mean(residuals(multivariate)^2))
 
 multivariate_m <- multivariate$coefficients["log(btw)"]
@@ -511,7 +565,7 @@ multivariate_bs <- c(multivariate_b,
                      multivariate_b + multivariate$coefficients["highwaytertiary"])
 
 # Plot the regression lines 
-ggplot(edges_join) +
+ggplot(accident_per_joined_edge) +
   geom_point(aes(x = btw, y = per_day, colour = highway)) +
   geom_line(
     data = data.frame(x = seq(300, 50000, by = 100)),
