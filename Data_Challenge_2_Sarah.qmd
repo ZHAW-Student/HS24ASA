@@ -49,6 +49,7 @@ districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
 
 
 The nodes (n = 24191) only have a geometry of the type "Point" and no other attributes. The edges (n = 29694) have beside the geometry which is of the type "Linestring" other attributes "from" and "to" describing the nodes at which they start and end, a name which describes the name of the road like "Neptunstrasse", if a name is present and an osm_id, which is the Identity it got based on it being Openstreetmap- data. It further contains the attributes "highway", which contains information about the order of the street, as well as bridge and tunnel, which each show whether it is a bridge or tunnel by having a 1/NA subdivision depending on whether the edge is a bridge or a tunnel. The network is connected, largely planar except for some tunnels and bridges and is also not weighted and does not contain self-loops.
+undirected
 
 
 ```{r, results='hide'}
@@ -322,6 +323,7 @@ str(st_layers("Session_9/roadtrafficaccidentlocations.gpkg"))
 accidents <- st_read("Session_9/roadtrafficaccidentlocations.gpkg")
 bike_accidents <- accidents |> 
   filter(AccidentInvolvingBicycle == "true" , !AccidentSeverityCategory == "as4") # removing the property damage beforehand
+bike_accidents<-st_zm(bike_accidents, drop = TRUE, what = "ZM")
 st_crs(accidents)
   
 str(st_layers("Session_9/Baumkataster/data/data.gpkg"))
@@ -332,10 +334,18 @@ st_crs(baumkataster)
 
 ##Determine number of accidents per grid cell
 ```{r}
-count_acc_hex <-st_contains(bike_accidents, hex_grid)
-#count_acc_hex2 <-st_contains(hex_grid,bike_accidents)# thats the wrong one
+# grid to sf
+hex_grid_sf <- st_as_sf(hex_grid, crs = 2056)
 
+count_acc_hex <-st_contains( hex_grid_sf,bike_accidents)
+counts <- lengths((count_acc_hex))
 
+acc_in_hex <- hex_grid_sf
+acc_in_hex$counts <- counts
+
+# Calculate centroid
+hex_centro <- st_centroid(hex_grid_sf)
+hex_centro_acc <-st_join(hex_centro,acc_in_hex)
 
 ```
 
