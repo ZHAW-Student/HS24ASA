@@ -335,6 +335,8 @@ st_crs(baumkataster)
 count_acc_hex <-st_contains(bike_accidents, hex_grid)
 #count_acc_hex2 <-st_contains(hex_grid,bike_accidents)# thats the wrong one
 
+
+
 ```
 
 
