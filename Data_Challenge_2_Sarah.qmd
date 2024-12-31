@@ -30,6 +30,7 @@ library(spdep)
 library(reshape2)
 library(dbscan)
 library(leaflet)
+library(tmap)
 ```
 
 ```{r, echo=FALSE}
@@ -343,7 +344,7 @@ counts <- lengths((count_acc_hex))
 acc_in_hex <- hex_grid_sf
 acc_in_hex$counts <- counts
 
-# Calculate centroid
+# Calculate centroid and apply count to it
 hex_centro <- st_centroid(hex_grid_sf)
 hex_centro_acc <-st_join(hex_centro,acc_in_hex)
 
@@ -352,6 +353,38 @@ hex_centro_acc <-st_join(hex_centro,acc_in_hex)
 
 ##Getis-Ord Gi
 ```{r}
+neighbors <- knn2nb(knearneigh(st_coordinates(hex_centro_acc), k = 18))#to reduce computing effort we define the neigbors as only the 6 neighbor adjacent neigbor- cells
+
+weights <- nb2listw(neighbors, style = "W", zero.policy = TRUE)
+
+gi_values <- localG(hex_centro_acc$counts, listw = weights)
+hex_centro_acc$gi_value <- gi_values
+
+hex_centro_acc$gi_value_no_localG <- as.numeric(hex_centro_acc$gi_value)#get rid of local g class
+
+#hex_centro_new <-st_within(hex_centro_acc,boundary)#takes way to long
+
+hex_centro_acc_4326<- st_transform(hex_centro_acc, crs = 4326)
+
+leaflet(hex_centro_acc_4326) |> 
+  addProviderTiles("Esri.WorldTopoMap", group = "Terrain") |> 
+  addCircleMarkers(
+    color = ~colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG)(hex_centro_acc_4326$gi_value_no_localG),  # Farbskala
+    fillOpacity = 0.7,
+    radius = 3,
+    stroke = FALSE,
+    popup = ~paste("Gi-Wert: ", round(gi_value_no_localG, 2))) |>  
+  addLegend(
+    position = "bottomright",
+    pal = colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG),
+    values = hex_centro_acc_4326$gi_value_no_localG,
+    title = "Getis-Ord Gi-Wert",
+    opacity = 0.7)
+
+tm_shape(districts) + 
+  tm_borders() + 
+  tm_shape(hex_centro_acc)+
+  tm_dots("gi_value", palette = "RdBu") 
 
 ```
 
