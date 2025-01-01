@@ -430,11 +430,7 @@ bike_counts <- readRDS("Session_10/bike_counts_aggregated.rds")
 ```
 
 
-* **Task 9:** Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least
-one of your two models should also use the (potentially transformed) tree counts per edge from
-Task 7. You may use additional predictors from my examples or whatever open data you can find
-elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see
-it and hopefully include it for future years.
+* **Task 9:** Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least one of your two models should also use the (potentially transformed) tree counts per edge from Task 7. You may use additional predictors from my examples or whatever open data you can find elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see it and hopefully include it for future years.
 
 ##Betweenness centrality model linear model
 ```{r}
@@ -575,8 +571,7 @@ model_performance <- data.frame(model = c("linear", "loglinear", "categorical",
 #Sixth part: Spatial Autocorrelation
 
 * **Task 14:** Define a (linear) mixed effects model to predict the number of accidents at an edge of the bicycle network from the (edge) centrality. You can freely transform variables and add other independent variables like the tree count. As groups for the random effects you can use the different road types (the highway property of the edges).
-Note: Observations with NA values are simply omitted by the lmer() function. You could instead
-treat them as a separate group using replace_na
+Note: Observations with NA values are simply omitted by the lmer() function. You could instead treat them as a separate group using replace_na
 
 ```{r}
 
