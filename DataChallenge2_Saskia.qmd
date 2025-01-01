@@ -352,32 +352,6 @@ colnames(bike_accidents)
 
 # Getis-Ord G i statistic
 ```{r}
-# bike accidents per grid cell
-count_acc_hex <-st_contains(bike_accidents, hex_grid)
-counts <- lengths((count_acc_hex))
-acc_in_hex <- hex_grid
-acc_in_hex$counts <- counts
-
-# grid to sf
-hex_grid_sf <- st_as_sf(hex_grid, crs = 2056)
-
-# Calculate centroid
-hex_centro <- st_centroid(hex_grid)
-
-# Create proportions for accident types
- getisbikedata_df <- bike_accidents
-# getisbikedata_df$lightinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with light injuries", 1.0, 0.0))
-# getisbikedata_df$severinj <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with severe injuries", 1.0, 0.0))
-# getisbikedata_df$propdam <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with property damage", 1.0, 0.0))
-# getisbikedata_df$fatal <- with(getisbikedata_df, ifelse(AccidentSeverityCategory_en=="Accident with fatalities", 1.0, 0.0))
-
-#turn into sf object
-getisbikedata_sf<-st_as_sf(getisbikedata_df,coords = c("AccidentLocation_CHLV95_E",  "AccidentLocation_CHLV95_N"), crs=2056)
-
-# join with grid
-getisbikedata_sf_join <- st_join(x = getisbikedata_sf, y = hex_grid_sf, left = FALSE)
-
-
 
 ```
 
@@ -385,35 +359,83 @@ getisbikedata_sf_join <- st_join(x = getisbikedata_sf, y = hex_grid_sf, left = F
 ## Task 7
 In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
+### Reduce extend to make process faster and create unique id
+
 ```{r}
-# create buffer around edges
-edge_buffer <- st_buffer(edges_sf, dist = 8)
+# we focus on districts 1, 4 and 5:
+centre <- districts |> 
+  filter(KNR %in% c(1,4,5))
 
-# connect trees with buffered edges
-trees <- st_join(edge_buffer, baumkataster_shp, left = FALSE)
+bbox_centre <- centre |> 
+  st_bbox() |> 
+  st_as_sfc() 
 
-# calculate distance between trees and edges
-trees$distance <- st_distance(trees, edge_buffer)
+bbox_centre_sf <- st_sf(geometry = bbox_centre)
 
-# only keep nearest edge per tree = avoid double counting
-joined_trees <- trees |> 
-  group_by(accident_point_id) |>   
-  slice_min(order_by = distance, n = 1) |>   
-  ungroup()
+# clip all data to the bbox
+trees_clipped <- st_intersection(bbox_centre_sf, baumkataster_shp)
+bike_accidents_clipped <- st_intersection(bbox_centre_sf, bike_accidents)
+biking_network_edges_sf_clipped <- st_intersection(bbox_centre_sf, biking_network_edges_sf)
+edges_sf_clipped <- st_intersection(bbox_centre_sf, edges_sf)
 
+# create unique id
+biking_network_edges_sf_clipped$uniqueID <- paste(biking_network_edges_sf_clipped$osm_id, biking_network_edges_sf_clipped$from, biking_network_edges_sf_clipped$to, sep = "_")
+edges_sf_clipped$uniqueID <- paste(edges_sf_clipped$osm_id, edges_sf_clipped$from, edges_sf_clipped$to, sep = "_")
+```
+
+
+```{r}
+# create buffer around edges, 5 m buffer = 3 m street + 1 m sidewalk, + 1 m buffer
+edge_buffer <- st_buffer(edges_sf_clipped, dist = 5)
+
+# find nearest edge for each tree and get osm id
+nearest_street <- st_nearest_feature(trees_clipped, edge_buffer)
+nearest_street <- edge_buffer$uniqueID[nearest_street]
+
+# add osm id from nearest street to trees
+trees_streets <- trees_clipped |> 
+  mutate(nearest_street_id = nearest_street)
+  
+# remove all trees that don't have a street id
+trees_streets <- trees_streets[!is.na(trees_streets$nearest_street_id), ]
+
+trees_per_street <- trees_streets |> 
+  group_by(nearest_street_id) |> 
+  summarise(count_trees = n()) |> 
+  st_drop_geometry()
+  
+# # connect trees with buffered edges
+# trees <- st_join(edge_buffer, trees_clipped, left = FALSE)
+# 
+# # calculate distance between trees and edges
+# trees$distance <- st_distance(trees, edge_buffer)
+# 
+# # only keep nearest edge per tree = avoid double counting
+# joined_trees <- trees |> 
+#   group_by(accident_point_id) |>   
+#   slice_min(order_by = distance, n = 1) |>   
+#   ungroup()
 ```
 
 
 ## Task 8
 Also, for a future task, count the number of accidents along each network edge.
 ```{r}
-# get amount of accidents within buffered edges
-accident_points <- st_join(edge_buffer,bike_accidents, join = st_nearest_feature)
+# find nearest edge for each accident and get osm id
+nearest_street_acc <- st_nearest_feature(bike_accidents_clipped, edge_buffer)
+nearest_street_acc <- edge_buffer$uniqueID[nearest_street_acc]
 
-# summarise to get amount of accidents per edge
-accident_per_edge <- accident_points |> 
-  group_by(osm_id) |> 
-  summarise(count = n())
+# add osm id from nearest street to accidents
+accidents_streets <- bike_accidents_clipped |> 
+  mutate(nearest_street_id = nearest_street_acc)
+  
+# remove all accidents that don't have a street id
+accidents_streets <- accidents_streets[!is.na(accidents_streets$nearest_street_id), ]
+
+acc_per_street <- accidents_streets |> 
+  group_by(nearest_street_id) |> 
+  summarise(count_acc = n()) |> 
+  st_drop_geometry()
 ```
 
 # Part 4 Generalised Linear Regression
@@ -425,17 +447,18 @@ Construct two different models to extrapolate bike traffic on Zurich’s roads. 
 bike_counts <- readRDS("bike_counts_aggregated.rds")
 
 # join sf of edges containing btw with bike counts, trees and accident points
-joined_data <- st_join(biking_network_edges_sf, bike_counts, left = TRUE, largest = TRUE)
-joined_data <- st_join(joined_data, trees, left = TRUE, largest = TRUE)
-joined_data <- st_join(joined_data, accident_points, left = TRUE, join = st_nearest_feature)
+joined_data <- st_join(biking_network_edges_sf_clipped, bike_counts, left = TRUE, largest = TRUE)
+joined_data <- left_join(x = joined_data, y = trees_per_street, by = join_by(uniqueID == nearest_street_id))
+joined_data <- left_join(x = joined_data, y = acc_per_street, by = join_by(uniqueID == nearest_street_id))
 
-accident_per_joined_edge <- joined_data |>
-  filter(!is.na(AccidentUID)) |>
-  group_by(osm_id.x) |> 
-  mutate(count = n()) |> 
-  ungroup()
-
-
+# joined_data <- st_join(joined_data, trees, left = TRUE, largest = TRUE)
+# joined_data <- st_join(joined_data, accident_points, left = TRUE, join = st_nearest_feature)
+# 
+# accident_per_joined_edge <- joined_data |>
+#   filter(!is.na(AccidentUID)) |>
+#   group_by(osm_id.x) |> 
+#   mutate(count = n()) |> 
+#   ungroup()
 # Compute the line graph and evaluate the betweenness centrality of edges
 # edges_join <- biking_network |>
 #   morph(to_linegraph) |>
@@ -474,43 +497,43 @@ accident_per_joined_edge <- joined_data |>
 # edges_join <- st_join(edges_join, biking_network_btw, left = TRUE, largest = TRUE)
 
 # clean data 
-colnames(accident_per_joined_edge)
-accident_per_joined_edge$btw[accident_per_joined_edge$btw == 0] <- NA
-accident_per_joined_edge$highway.x <- factor(accident_per_joined_edge$highway.x)
-levels(accident_per_joined_edge$highway.x)
+colnames(joined_data)
+joined_data$btw[joined_data$btw == 0] <- NA
+joined_data$highway.x <- factor(joined_data$highway)
+levels(joined_data$highway)
 
 ```
 
 
 ```{r}
 # compute linear regression 
-linear <- lm(per_day ~ btw, data = accident_per_joined_edge) # y ~ x
+linear <- lm(per_day ~ btw, data = joined_data) # y ~ x
 
 # Retrieve the slope and intercept of the model
 linear_m <- linear$coefficients["btw"]
 linear_b <- linear$coefficients["(Intercept)"]
 
 # Plot the linear relationship between btw and traffic
-ggplot(accident_per_joined_edge) +
+ggplot(joined_data) +
   geom_point(aes(x = btw, y = per_day)) +
   geom_abline(slope = linear_m, intercept = linear_b, color = "blue", linetype = "solid") +
   xlab("Betweenness centrality") +
-  ylab("Number of accidents per day") +
+  ylab("Traffic per day") +
   theme_minimal()
 
 
 # Compute a linear regression model where log btw predicts traffic
-loglinear <- lm(per_day ~ log(btw), data = accident_per_joined_edge)
+loglinear <- lm(per_day ~ log(btw), data = joined_data)
 loglinear_m <- loglinear$coefficients["log(btw)"]
 loglinear_b <- loglinear$coefficients["(Intercept)"]
 
 # Plot the linear relationship between log btw and traffic
-ggplot(accident_per_joined_edge) +
+ggplot(joined_data) +
   geom_point(aes(x = btw, y = per_day)) +
     geom_abline(slope = loglinear_m, intercept = loglinear_b, color = "blue", linetype = "solid") +
   scale_x_continuous(trans = "log") +
   xlab("Betweenness centrality") +
-  ylab("Number of accidents per day") +
+  ylab("Traffic per day") +
   theme_minimal()
 
 # Compute the RMSE of the linear and log-linear model
@@ -527,84 +550,62 @@ summary(loglinear)
 # both approaches are not useful to predict traffic
 
 # Add the residuals of the log-linear model to the original data
-loglinear_res <- accident_per_joined_edge |>   
+loglinear_res <- joined_data |>   
   mutate(residuals = per_day - loglinear$fitted.values)
 
 # Plot the residuals
 ggplot(loglinear_res) +
-  geom_point(aes(x = btw, y = residuals)) +
-  scale_x_continuous(trans = "log", breaks = c(400, 4000, 40000),
+  geom_point(aes(x = btw, y = residuals, size = count_trees, colour = highway)) +
+  scale_x_continuous(trans = "log",
                      name = "Betweenness centrality") +
   xlab("Betweenness centrality") +
-  ylab("Number of accidents per day") +
+  ylab("Traffic per day") +
   theme_minimal()
 
 
 # Compute a linear regression model where highway type predicts traffic
-categorical <- lm(per_day ~ highway.x + 0, data = accident_per_joined_edge)
+categorical <- lm(per_day ~ highway + 0, data = joined_data)
 rmse_categorical <- sqrt(mean(residuals(categorical)^2)) 
 
 # Plot the mean traffic per highway type 
-ggplot(accident_per_joined_edge, aes(x = highway.x, y = per_day)) +
+ggplot(joined_data, aes(x = highway, y = per_day)) +
   geom_boxplot() +
   stat_summary(fun = mean, geom = "point", col = "pink1") + 
   xlab("Betweenness centrality") +
-  ylab("Number of accidents per day") +
+  ylab("Traffic per day") +
   theme_minimal()
 
 # Compute a linear regression model where log btw and highway type predict traffic 
-multivariate <- lm(per_day ~ log(btw) + highway.x, data = accident_per_joined_edge)
+multivariate <- lm(per_day ~ log(btw) + highway, data = joined_data)
 rmse_multivariate <- sqrt(mean(residuals(multivariate)^2))
 
 multivariate_m <- multivariate$coefficients["log(btw)"]
 multivariate_b <- multivariate$coefficients["(Intercept)"]
 
 multivariate_bs <- c(multivariate_b, 
+                     multivariate_b + multivariate$coefficients["highwayliving_street"],
+                     multivariate_b + multivariate$coefficients["highwaypath"],
                      multivariate_b + multivariate$coefficients["highwayresidential"],
-                     multivariate_b + multivariate$coefficients["highwayservice"],
-                     multivariate_b + multivariate$coefficients["highwaytertiary"])
+                     multivariate_b + multivariate$coefficients["highwaysecondary"])
 
 # Plot the regression lines 
-ggplot(accident_per_joined_edge) +
+ggplot(joined_data) +
   geom_point(aes(x = btw, y = per_day, colour = highway)) +
   geom_line(
-    data = data.frame(x = seq(300, 50000, by = 100)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[1], color = "highwayresidential")) +
+    data = data.frame(x = seq(300, 1000000000, by = 100000)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[1], color = "highwayliving_street")) +
   geom_line(
-    data = data.frame(x = seq(300, 50000, by = 100)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[2], color = "highwayservice")) +
+    data = data.frame(x = seq(300, 1000000000, by = 100000)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[2], color = "highwaypath")) +
   geom_line(
-    data = data.frame(x = seq(300, 50000, by = 100)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[3], color = "highwaytertiary")) +
-  scale_x_continuous(trans = "log", breaks = c(400,4000,40000)) +
-  scale_size_continuous(name = "population") +
-  ylab("Life expectancy") +
-  xlab("GDP per capita (USD)") +
-  theme_minimal()
-
-
-# Compute a linear regression model with a ridiculous number of predictors 
-# extreme <- lm(per_day ~   + log(btw) + highway * poly(log(nt), 2) + 
-#                 highway.x * poly(poi_id, 6) +
-#                 highway.x * poly(log(btw), 3) * poly(nt, 3),
-#               data = edges_join)
-# 
-# rmse_extreme <- sqrt(mean(residuals(extreme)^2))
-
-
-# compute glm
-model_glm <- glm(per_day ~ btw, data = edges_join, family = binomial)
-summary(model_glm)
-
-intercept_glm <- model_glm$coefficients[[1]]
-slope_glm <- model_glm$coefficients[[2]]
-
-ggplot(data = edges_join) +
-  geom_point(aes(x = btw, y = per_day)) +
-  geom_line(data = data.frame(x = seq(0, 600, by = 0.1)),
-            aes(x = x, y = 1/(1 + exp(- intercept_glm - slope_glm * x))),
-            color = "red",
-            linewidth = 1.5) +
+    data = data.frame(x = seq(300, 1000000000, by = 100000)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[3], color = "highwayresidential")) +
+  geom_line(
+    data = data.frame(x = seq(300, 1000000000, by = 100000)),
+    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[4], color = "highwaysecondary")) +
+  scale_x_continuous(trans = "log") +
+  xlab("Betweenness centrality") +
+  ylab("Traffic per day") +
   theme_minimal()
 
 ```
@@ -633,58 +634,24 @@ flextable(model_performance)
 You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
 ```{r}
-poisson_model <- glm(count ~ btw, data = accident_per_joined_edge, family = "poisson")
+joined_data_acc <- joined_data |> 
+  filter(!is.na(count_acc))
+
+poisson_model <- glm(count_acc ~ btw, data = joined_data_acc, family = "poisson")
 summary(poisson_model)
 
-#Retrieve coefficients
+# Retrieve coefficients
 intercept_poisson <- poisson_model$coefficient[1]
 slope_poisson <- poisson_model$coefficient[2]
 
 lambda_hat <- predict(poisson_model, type = "response")
 prob_no_accidents <- exp(-lambda_hat)
 
-ggplot(accident_per_joined_edge, aes(x = btw, y = count)) +
-  geom_point(aes(color = factor(count)), size = 3) + # Punkte für die tatsächlichen Unfälle
-  geom_line(aes(x = btw, y = prob_no_accidents * max(count)), color = "blue", size = 1) + # Poisson-Kurve
-  labs(
-    title = "Poisson-Modell: Wahrscheinlichkeiten für keine Unfälle",
-    x = "Zentralitätsmaß",
-    y = "Anzahl der Unfälle / Wahrscheinlichkeit für keine Unfälle",
-    subtitle = "Blaue Linie: Wahrscheinlichkeit für keine Unfälle"
-  ) +
-  theme_minimal() 
 
-ggplot(accident_per_joined_edge, aes(x = btw, y = prob_no_accidents)) +
-  geom_point(aes(color = factor(count)), size = 3) + 
-  geom_line(aes(x = btw, y = prob_no_accidents), color = "blue", size = 1) +
-  labs(
-    title = "Wahrscheinlichkeit für keine Unfälle auf Basis des Zentralitätsmaßes",
-    x = "Zentralitätsmaß",
-    y = "Wahrscheinlichkeit für keine Unfälle",
-    subtitle = "Poisson-Modell basierend auf Zentralitätsmaß"
-  ) +
-  theme_minimal()
-
-ggplot(accident_per_joined_edge, aes(x = count)) +
-  geom_bar(stat = "count", fill = "lightblue", color = "black") +
-  labs(
-    title = "Häufigkeit von Unfällen auf verschiedenen Straßenabschnitten",
-    x = "Anzahl der Unfälle",
-    y = "Häufigkeit"
-  ) +
-  theme_minimal()
-
-
-ggplot(accident_per_joined_edge) +
-  geom_sf(aes(color = prob_no_accidents), size = 2) +  # Straßenabschnitte einfärben
-  scale_color_viridis_c(option = "C", name = "Wahrscheinlichkeit für\nkeinen Unfall") +  # Farbskala
-  labs(
-    title = "Färbung der Straßenabschnitte nach Wahrscheinlichkeit für keine Unfälle",
-    subtitle = "Poisson-Modell basierend auf Zentralitätsmaß"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")  # Legende unten platzieren
-
+ggplot(joined_data_acc) +
+  geom_sf(aes(color = prob_no_accidents), size = 1.5) +
+  scale_color_viridis_c(name = "Predicted probability", option = "H") +
+  labs(title = "Predicted probability that no accident occurs per edge")
 ```
 
 
@@ -693,17 +660,154 @@ ggplot(accident_per_joined_edge) +
 Construct a linear regression model to predict the number of accidents along network edges based on centrality measures and/or tree counts. You can freely transform variables and add other independent variables to seek a better model. Are the residuals spatially autocorrelated? (Note: Since the number of accidents is count data, Poisson regression makes more sense than simple linear regression, as you did in Task 11. However, use a simple linear regression model for this task so that you can compare the model performance against spatial regression models in Task 13).
 
 ```{r}
+# first we plot the data
+par(mfrow = c(1,1))
+plot(joined_data_acc$count_acc~joined_data_acc$btw)
+plot(joined_data_acc$count_acc~joined_data_acc$count_trees)
+
+# transform variables, which could improve model fit
+
+# plot data again
+
+# Log-Transformation der Variablen
+ggplot(joined_data_acc, aes(x = log(btw), y = log(count_acc))) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +  # Regressionslinie
+  labs(title = "Log-transformierte Regressionsbeziehung", 
+       x = "Log(Betweenness)", y = "Log(Anzahl Unfälle)") +
+  theme_minimal()
+
+# Quadratische Transformation
+ggplot(joined_data_acc, aes(x = btw, y = count_acc)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), color = "red") +  # Quadratische Regressionslinie
+  labs(title = "Quadratische Regression: Unfälle vs. Betweenness", 
+       x = "Betweenness", y = "Anzahl Unfälle") +
+  theme_minimal()
+
+# Standardisierung der Variablen
+joined_data_acc$btw_scaled <- scale(joined_data_acc$btw)
+joined_data_acc$count_acc_scaled <- scale(joined_data_acc$count_acc)
+
+# Streudiagramm der standardisierten Variablen
+ggplot(joined_data_acc, aes(x = btw_scaled, y = count_acc_scaled)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Standardisierte Regressionsbeziehung", 
+       x = "Standardisierte Betweenness", y = "Standardisierte Anzahl Unfälle") +
+  theme_minimal()
+
+# create different models
+lm_betweenness <-lm(formula = count_acc ~ btw, data = joined_data_acc)
+lm_trees <-lm(formula = count_acc ~ count_trees, data = joined_data_acc)
+lm_betweenness_trees <-lm(formula = count_acc ~ btw + count_trees, data = joined_data_acc)
+
+# plot lm_betweenness
+ggplot(joined_data_acc, aes(x = btw, y = count_acc)) +
+  geom_point(color = "black") +  
+  geom_smooth(method = "lm", color = "blue") +  
+  labs(x = "Betweenness centrality",
+       y = "Amount of accidents") +
+  theme_minimal()
+
+par(mfrow = c(2, 2))
+plot(lm_betweenness)
+
+# plot lm_trees
+ggplot(joined_data_acc, aes(x = count_trees, y = count_acc)) +
+  geom_point(color = "black") +  
+  geom_smooth(method = "lm", color = "blue") +  
+  labs(x = "Amount of trees",
+       y = "Amount of accidents") +
+  theme_minimal()
+
+par(mfrow = c(2, 2))
+plot(lm_trees)
+
+# plot lm_betweenness_trees
+par(mfrow = c(2, 2))
+plot(lm_betweenness_trees)
 
 ```
 
+```{r}
+#compare models and choose best model
+BIC <- c(BIC(lm_betweenness), BIC(lm_trees), BIC(lm_betweenness_trees))
+AIC <- c(AIC(lm_betweenness), AIC(lm_trees), AIC(lm_betweenness_trees))
+
+model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees"),
+                                BIC = BIC, 
+                                AIC = AIC)
+
+# Visualise the AIC and BIC for all models in a table
+flextable(model_performance)
+```
+
+```{r}
+# check for spatial autocorrelation of best model
+# Extract residuals and bin them 
+residuals_lm_btw <- residuals(lm_betweenness) |>
+  as_tibble |>
+  setNames("residuals") |>
+  mutate(id = row_number()) |>
+  mutate(binned_residuals = cut_interval(residuals, n = 8))
+
+# Join with the polygons of upstate New York
+joined_data_acc <- full_join(joined_data_acc, 
+                             residuals_lm_btw, by = "id")
+
+# Plot the residuals
+ggplot(leukaemia_up_ny) +
+  geom_sf(aes(fill = binned_residuals)) + 
+  theme_minimal() +
+  scale_fill_brewer(name='Residuals',
+                    palette="PRGn") +
+  theme(axis.title=element_blank())
+
+# Contiguity neighbours
+joined_data_acc_nb <- poly2nb(joined_data_acc)
+
+# Binary spatial weights
+joined_data_acc_weights <- nb2listw(joined_data_acc, style = "B")
+
+# Moran's I 
+morans_I_residuals <- lm.morantest(lm_leukaemia, listw = up_ny_weights,
+                                   alternative = "greater")
+
+morans_I_residuals
+```
 
 ## Task 13
 Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression model from Task 12.
 
 ```{r}
+#spatial_lag
+lag_joined <- lagsarlm (formula = Z ~ PEXPOSURE + PCTAGE65P + PCTOWNHOME, 
+                           data = joined_data_acc, listw = up_ny_weights)
 
+summary(lag_joined)
 ```
 
+```{r}
+#spatial_error
+ser_leukaemia  <- spautolm(formula = Z ~ PEXPOSURE + PCTAGE65P + PCTOWNHOME, data = joined_data_acc, 
+                      listw = up_ny_weights)
+
+summary(ser_leukaemia )
+```
+
+
+```{r}
+#comparison of models
+BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
+AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
+
+model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
+                                          "multivariate", "extreme"),
+                                BIC = BIC, 
+                                AIC = AIC)
+
+```
 
 
 # Part 6: Spatial Autocorrelation
