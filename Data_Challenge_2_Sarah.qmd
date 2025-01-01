@@ -481,13 +481,93 @@ This week, you will perform spatial regression to predict the number of accident
 * **Task 12:**  Construct a linear regression model to predict the number of accidents along network edges based on centrality measures and/or tree counts. You can freely transform variables and add other independent variables to seek a better model. Are the residuals spatially autocorrelated? (Note: Since the number of accidents is count data, Poisson regression makes more sense than simple linear regression, as you did in Task 11. However, use a simple linear regression model for this task so that you can compare the model performance against spatial regression models in Task 13).
 
 ```{r}
+#first we plot the data
+
+#transform variables, which could improve model fit
+
+#plot data again 
+
+#create different models
+lm_betweenness <-lm(formula = accident ~ betweenness, data = data)
+lm_trees <-lm(formula = accident ~ trees, data = data)
+lm_betweenness_trees <-lm(formula = accident ~ betweenness + trees, data = data)
 
 ```
 
+```{r}
+#compare models and choose best model
+BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
+AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
 
-* **Task 13:** Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression modelfrom Task 12.
+model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
+                                          "multivariate", "extreme"),
+                                BIC = BIC, 
+                                AIC = AIC)
+```
 
 ```{r}
+#check for spatial autocorrelation of best model
+# Extract residuals and bin them 
+residuals_lm_leukaemia <- residuals(lm_leukaemia) %>%
+  as_tibble |>
+  setNames("residuals") |>
+  mutate(id = row_number()) |>
+  mutate(binned_residuals = cut_interval(residuals, n = 8))
+
+# Join with the polygons of upstate New York
+leukaemia_up_ny <- full_join(leukaemia_up_ny, 
+                             residuals_lm_leukaemia, by = "id")
+
+# Plot the residuals
+ggplot(leukaemia_up_ny) +
+  geom_sf(aes(fill = binned_residuals)) + 
+  theme_minimal() +
+  scale_fill_brewer(name='Residuals',
+                    palette="PRGn") +
+  theme(axis.title=element_blank())
+
+# Contiguity neighbours
+up_ny_nb <- poly2nb(leukaemia_up_ny)
+
+# Binary spatial weights
+up_ny_weights <- nb2listw(up_ny_nb, style = "B")
+
+# Moran's I 
+morans_I_residuals <- lm.morantest(lm_leukaemia, listw = up_ny_weights,
+                                   alternative = "greater")
+
+morans_I_residuals
+```
+
+
+* **Task 13:** Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression model from Task 12.
+
+```{r}
+#spatial_lag
+lag_leukaemia <- lagsarlm (formula = Z ~ PEXPOSURE + PCTAGE65P + PCTOWNHOME, 
+                           data = leukaemia_up_ny, listw = up_ny_weights)
+
+summary(lag_leukaemia )
+```
+
+```{r}
+#spatial_error
+ser_leukaemia  <- spautolm(formula = Z ~ PEXPOSURE + PCTAGE65P + PCTOWNHOME, data = leukaemia_up_ny, 
+                      listw = up_ny_weights)
+
+summary(ser_leukaemia )
+```
+
+
+```{r}
+#comparison of models
+BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
+AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
+
+model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
+                                          "multivariate", "extreme"),
+                                BIC = BIC, 
+                                AIC = AIC)
 
 ```
 
