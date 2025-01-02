@@ -38,6 +38,7 @@ library(titanic)
 library(pscl)
 library(terra)
 library(leaflet)
+library(spatialreg)
 ```
 # Part 1 Modeling networks
 ## Task 1
@@ -499,7 +500,7 @@ joined_data <- left_join(x = joined_data, y = acc_per_street, by = join_by(uniqu
 # clean data 
 colnames(joined_data)
 joined_data$btw[joined_data$btw == 0] <- NA
-joined_data$highway.x <- factor(joined_data$highway)
+joined_data$highway <- factor(joined_data$highway)
 levels(joined_data$highway)
 
 ```
@@ -641,17 +642,22 @@ poisson_model <- glm(count_acc ~ btw, data = joined_data_acc, family = "poisson"
 summary(poisson_model)
 
 # Retrieve coefficients
-intercept_poisson <- poisson_model$coefficient[1]
-slope_poisson <- poisson_model$coefficient[2]
+intercept_poisson <- poisson_model$coefficients[1]
+slope_poisson <- poisson_model$coefficients[2]
 
-lambda_hat <- predict(poisson_model, type = "response")
-prob_no_accidents <- exp(-lambda_hat)
+joined_data_acc$lambda <- exp(intercept_poisson + slope_poisson * joined_data_acc$btw)
+joined_data_acc$p_no_accident <- exp(-joined_data_acc$lambda)
+
+# Ergebnis anzeigen
+head(joined_data_acc[c("btw", "lambda", "p_no_accident")])
+
 
 
 ggplot(joined_data_acc) +
-  geom_sf(aes(color = prob_no_accidents), size = 1.5) +
-  scale_color_viridis_c(name = "Predicted probability", option = "H") +
-  labs(title = "Predicted probability that no accident occurs per edge")
+  geom_sf(aes(color = p_no_accident), size = 3) +
+  scale_color_viridis_c(name = "Predicted probability", option = "H", direction = -1) +
+  labs(title = "Predicted probability that no accident occurs per edge") +
+  theme_void()
 ```
 
 
@@ -747,31 +753,34 @@ flextable(model_performance)
 # check for spatial autocorrelation of best model
 # Extract residuals and bin them 
 residuals_lm_btw <- residuals(lm_betweenness) |>
-  as_tibble |>
+  as_tibble() |>
   setNames("residuals") |>
-  mutate(id = row_number()) |>
-  mutate(binned_residuals = cut_interval(residuals, n = 8))
+  mutate(uniqueID = joined_data_acc$uniqueID, 
+         binned_residuals = cut_interval(residuals, n = 8))
+
+edge_point <- st_centroid(joined_data_acc)
 
 # Join with the polygons of upstate New York
-joined_data_acc <- full_join(joined_data_acc, 
-                             residuals_lm_btw, by = "id")
+joined_data_acc <- full_join(edge_point, 
+                             residuals_lm_btw, by = "uniqueID")
 
-# Plot the residuals
-ggplot(leukaemia_up_ny) +
+
+# Plot the residuals --- plot noch nicht farbig
+ggplot(joined_data_acc) +
   geom_sf(aes(fill = binned_residuals)) + 
   theme_minimal() +
-  scale_fill_brewer(name='Residuals',
-                    palette="PRGn") +
+  scale_fill_brewer(name = 'Residuals', palette = "PRGn") +  
   theme(axis.title=element_blank())
 
 # Contiguity neighbours
-joined_data_acc_nb <- poly2nb(joined_data_acc)
+joined_data_acc_knear <- knearneigh(joined_data_acc, k = 2)
+joined_data_acc_nb <- knn2nb(joined_data_acc_knear)
 
 # Binary spatial weights
-joined_data_acc_weights <- nb2listw(joined_data_acc, style = "B")
+joined_data_acc_weights <- nb2listw(nb, style = "B")
 
 # Moran's I 
-morans_I_residuals <- lm.morantest(lm_leukaemia, listw = up_ny_weights,
+morans_I_residuals <- lm.morantest(lm_betweenness, listw = joined_data_acc_weights,
                                    alternative = "greater")
 
 morans_I_residuals
@@ -782,30 +791,32 @@ Apply a spatial regression model (spatial lag, spatial error, or both) using the
 
 ```{r}
 #spatial_lag
-lag_joined <- lagsarlm (formula = Z ~ PEXPOSURE + PCTAGE65P + PCTOWNHOME, 
-                           data = joined_data_acc, listw = up_ny_weights)
+lag_joined <- lagsarlm (formula = count_acc ~ btw + count_trees, 
+                           data = joined_data_acc, listw = joined_data_acc_weights)
 
 summary(lag_joined)
 ```
 
 ```{r}
 #spatial_error
-ser_leukaemia  <- spautolm(formula = Z ~ PEXPOSURE + PCTAGE65P + PCTOWNHOME, data = joined_data_acc, 
-                      listw = up_ny_weights)
+ser_joined  <- spautolm(formula = count_acc ~ btw + count_trees, 
+                           data = joined_data_acc, listw = joined_data_acc_weights)
 
-summary(ser_leukaemia )
+summary(ser_joined)
 ```
 
 
 ```{r}
-#comparison of models
-BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
-AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
+#compare models
+BIC <- c(BIC(lm_betweenness), BIC(lm_trees), BIC(lm_betweenness_trees), BIC(ser_joined))
+AIC <- c(AIC(lm_betweenness), AIC(lm_trees), AIC(lm_betweenness_trees), AIC(ser_joined))
 
-model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
-                                          "multivariate", "extreme"),
+model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees", "ser_joined"),
                                 BIC = BIC, 
                                 AIC = AIC)
+
+# Visualise the AIC and BIC for all models in a table
+flextable(model_performance)
 
 ```
 
