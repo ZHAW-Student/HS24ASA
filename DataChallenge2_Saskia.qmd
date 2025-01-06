@@ -13,8 +13,9 @@ format:
     toc: true
     toc_depth: 2
     toc_float: true
+    code-fold: true
 execute:                      # Set global options for execution of code blocks
-  echo: true
+  echo: false
   warning: false
   message: false
 ---
@@ -45,16 +46,18 @@ library(ggeffects)
 library(tmap)
 ```
 # Introduction 
-This file includes the assignments, code and interpretation of Data Challenge 1. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. Each person has invested about 25 hours into this project.
+This file includes the assignments, code and interpretation of Data Challenge 2. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. Each person has invested about 25 hours into this project. ChatGPT has been used to create and adapt code for this data challenge, but not for the interpretation. 
 
 # Part 1 Modeling networks
 ## Task 1
 Describe the bicycle network. In particular, discuss properties that emerged in this week’s
 session, such as:
+
 * What are the attributes of the nodes and edges? 
 * How many nodes and edges are present in the network? 
 * Do the edges have geometries themselves, or are they merely relations between nodes that possess geometries?
 * Is the network connected? (Largely) planar? Weighted? Does it contain self-loops? 
+
 ```{r results='hide'}
 # read data
 biking_network <- readRDS("biking_network.rds")
@@ -68,7 +71,6 @@ edge_attr(biking_network)
 
 # Extract attributes of vertices
 vertex_attr(biking_network)
-
 ```
 
 The bicycle network constists of 24191 nodes and 29694 edges. It is undirected. The attributes of the edges are the name of the street, information about whether it is a bridge or a tunnel or neither, as well as the level of the highway. The geometry is linestring. Also, there is information about the from and to points, and the OSM ID. The vertices are points with an id but without further attributes. The network is largely planar and does not contain self loops. It is not weighted.
@@ -117,13 +119,13 @@ hex_grid <- sf::st_make_grid(bbox, what = "polygons",
                           cellsize = 50, square = FALSE, flat_topped = FALSE)
 ```
 
-If I take a look at the kNN distance plot, a threshold of 50 to 75 m makes sense. In order to decide we took a look at the Niderdörfli. Within this area, the streets are rather short. After measuring some edges we decided to use a threshold of 50 m. We first created both a hexagonal and rectangular grid, but deleted the later as we proceeded. 
+If I take a look at the kNN distance plot, a threshold of 50 to 75 m makes sense. In order to decide we took a look at the Niderdörfli. Within this area, the streets are rather short. After measuring some edges we decided to use a threshold of 50 m. We first created both a hexagonal and rectangular grid, but deleted the rectangular one as we proceeded. 
 
 # Part 2 Network measures
 ## Task 3
 Have you ever cycled in Zürich? Compute and plot the optimal path from the starting point to the endpoint of a cycling route you are familiar with. You can use the biking_network.rds provided in Session 06, or adapt the CycleNetwork.rmd to create your own network. Compare the route inferred by the network with your preferred route.
 
-I have never cycled in the city of Zurich, but I am interested in the path from the mainstation to Oerlikon. I will try to compute the path between those two points. 
+I have never cycled in the city of Zurich, but I am interested in the path from the main station to Oerlikon. I will try to compute the path between those two points. 
 
 ```{r}
 # determine start and end points
@@ -165,6 +167,7 @@ The calculated path differs a lot from what google maps suggets when you ask for
 
 ## Task 4
 In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
+
 * Why is it reasonable to assume that the measure you choose correlates with the amount of bike traffic? 
 * What potential problems might arise with this measure? For example, the network contains many parallel paths in close proximity, which could influence measures that rely on shortest-path computations. 
 * Plot your chosen measure for the network.
@@ -214,14 +217,14 @@ ggplot() +
   scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
   theme_void()
 ```
-
 :::
+
 These plots show the betweenness centrality of the nodes as well as the edges. On this scale, there is not much to be recognised, nevertheless you can see points with higher betweenness centrality from Kreis 12 all the way down to Kreis 3. Looking at the betweenness centrality of the edges, this becomes even clearer. There is that one road from Kreis 12 to Kreis 3 as well as the one coming up from Kreis 2 trough the centre and along the river. 
 
 ## Task 5 
 A new bicycle infrastructure project, the “Stadttunnel” (https://www.stadt-zuerich.ch/site/velo/de/index/st adttunnel.html), is under construction, connecting the coordinates (8.53619°E, 47.37768°N) with (8.53783°E, 47.38024°N) beneath the station. Analyse how this project affects the network measure you selected in Task 4, and visualise the changes. Depending on when you retrieved the data from OSM, the Stadttunnel might already be included in the network or not. If you encounter difficulties removing or adding the edge, please refer to the script remove_or_add_edge.r available on OLAT.
 
-```{r}
+```{r results='hide'}
 # test if the Stadttunnel is already included in my network
 # Define a bounding box around Zurich HB.
 bbox_hb <- 
@@ -327,13 +330,13 @@ ggplot() +
 ```
 :::
 
-The plots show the betweenness centrality of the nodes and edges around the main station with and without the Stadttunnel. We decided to fokus on the area around the mainstation in order to make the differences visible. With the Stadttunnel, the nodes on the Sihlquai, Kasernenstrasse and Platzspitzbrücke are higher. Without the Stadttunnel, the nodes on the Gessnerallee, Bahnhofplatz, Bahnhofstrasse and all the way to Neumühlenquai are higher. Additionaly, the nodes at the Walchebrücke have a higher centrality. Looking at the betweenness centrality of the edges shows a similar picture. With the Stadttunnel, there is this new route from Kasernenstrasse under the main station and along Platuspitz all the way up to Platzspitzbrücke and Drahtschmidlisteg. Without the Stadttunnel, the route along Gessnerallee, Bahnhofplatz, Bahnhofbrücke and Neumühlenquai or Bahnhofquai, Walchebrücke and Walchestrasse have higher centrality. The Stampfenbackstrasse also has higher centrality without the Stadttunnel. It can be concluded that the Stadttunnel offers a more direct way from Kreis 4 to Kreis 6.
+The plots show the betweenness centrality of the nodes and edges around the main station with and without the Stadttunnel. We decided to fokus on the area around the mainstation in order to make the differences visible. With the Stadttunnel, the nodes on the Sihlquai, Kasernenstrasse and Platzspitzbrücke are higher. Without the Stadttunnel, the nodes on the Gessnerallee, Bahnhofplatz, Bahnhofstrasse and all the way to Neumühlenquai are higher. Additionaly, the nodes at the Walchebrücke have a higher centrality. Looking at the betweenness centrality of the edges shows a similar picture. With the Stadttunnel, there is this new route from Kasernenstrasse under the main station and along Platzspitz all the way up to Platzspitzbrücke and Drahtschmidlisteg. Without the Stadttunnel, the route along Gessnerallee, Bahnhofplatz, Bahnhofbrücke and Neumühlenquai or Bahnhofquai, Walchebrücke and Walchestrasse have higher centrality. The Stampfenbackstrasse also has higher centrality without the Stadttunnel. It can be concluded that the Stadttunnel offers a more direct way from Kreis 4 to Kreis 6.
 
 # Part 3 Spatial Autocorrelation
 ## Task 6 
 Determine the number of bike accidents occurring in each grid cell. Use the function st_contains if your grid is made up of polygons, or st_nearest_feature if it consists of points. Plot the Getis-Ord G i statistic to visualize accident counts per cell. Assess whether the results are significant and identify where accident hot spots are located. If you recognize the locations, consider whether the hot spots share common characteristics or features.
 
-```{r}
+```{r results='hide'}
 # read tree data
 baumkataster_shp <- st_read("baumstandorte/gsz.baumkataster_baumstandorte.shp")
 st_crs(baumkataster_shp)
@@ -367,7 +370,6 @@ bike_accidents[10:22] <- list(NULL)
 colnames(bike_accidents)
 ```
 
-# Getis-Ord G i statistic
 ```{r}
 # grid to sf
 hex_grid_sf <- st_as_sf(hex_grid, crs = 2056)
@@ -393,8 +395,6 @@ hex_centro_acc$gi_value_no_localG <- as.numeric(hex_centro_acc$gi_value)#get rid
 hex_centro_acc_4326<- st_transform(hex_centro_acc, crs = 4326)
 ```
 
-::: {.panel-tabset .nav-pills}
-
 ## Getis-Ord G i statistic
 ```{r}
 leaflet(hex_centro_acc_4326) |> 
@@ -405,30 +405,22 @@ leaflet(hex_centro_acc_4326) |>
     fillOpacity = 0.7,
     radius = 3,
     stroke = FALSE,
-    popup = ~paste("Gi-Wert: ", round(gi_value_no_localG, 2))) |>  
+    popup = ~paste("Gi-Value: ", round(gi_value_no_localG, 2))) |>  
   addLegend(
     position = "bottomright",
     pal = colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG, reverse = TRUE),
     values = hex_centro_acc_4326$gi_value_no_localG,
-    title = "Getis-Ord Gi-Wert",
+    title = "Getis-Ord Gi-Value",
     opacity = 0.7)
 ```
 
-# alternative - müssten wir noch schön machen
-```{r}
-tm_shape(districts) + 
-  tm_borders() + 
-  tm_shape(hex_centro_acc)+
-  tm_dots("gi_value", palette = "RdBu") 
-```
-:::
-
-There are more accidents around the Central, along the Limmatquai, Langstrasse and Hardbrücke. These are well known locations for a lot of traffic, not only cars but also tram, busses and pedestrian. It seems quite plausible, that more accidents happen in these locations. Another hotspot is the Bucheggplatz, where there is also a lot of traffic with public transport. Looking at these hotspots it can be said that when there is a lot of traffic also with trams and busses, there are more accident. This is plausible as bikers can for example get stuck on the tracks of the trams and there are normally a lot of people who walk across the street before looking or thinking. Zooming out a little bit on the map you can alos see that more accidents tend to happen along the roads with higher centrality shown in task 5. 
+There are more accidents around the Central, along the Limmatquai, Langstrasse and Hardbrücke. These are well known locations for a lot of traffic, not only cars but also tram, busses and pedestrian. It seems quite plausible that more accidents happen in these locations. Another hotspot is the Bucheggplatz, where there is also a lot of traffic with public transport. Looking at these hotspots it can be said that when there is a lot of traffic also with trams and busses, there are more accident. This is plausible as bikers can for example get stuck on the tracks of the trams and there are normally a lot of people who walk across the street before looking or thinking. Zooming out a little bit on the map you can also see that more accidents tend to happen along the roads with higher centrality as shown in task 5. 
 
 ## Task 7
 In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
 We chose to buffer the edges with 5 m before joining with the trees. We assume, that if the edge is in the middle of the road, there are 3 m of street, 1 m of sidewalk and 1 m of greenstrip where the trees could be on each side. As our computers could not handle the join over the whole city, we chose to focus on the region of Kreis 1, 4 and 5. We keep this fokus for the remaining of DC2, as it was not possible to take the whole city into account. 
+
 ```{r}
 # we focus on districts 1, 4 and 5:
 centre <- districts |> 
@@ -452,7 +444,7 @@ edges_sf_clipped$uniqueID <- paste(edges_sf_clipped$osm_id, edges_sf_clipped$fro
 ```
 
 
-```{r}
+```{r echo=TRUE, collapse=TRUE}
 # create buffer around edges, 5 m buffer = 3 m street + 1 m sidewalk, + 1 m buffer
 edge_buffer <- st_buffer(edges_sf_clipped, dist = 5)
 
@@ -471,18 +463,6 @@ trees_per_street <- trees_streets |>
   group_by(nearest_street_id) |> 
   summarise(count_trees = n()) |> 
   st_drop_geometry()
-  
-# # connect trees with buffered edges
-# trees <- st_join(edge_buffer, trees_clipped, left = FALSE)
-# 
-# # calculate distance between trees and edges
-# trees$distance <- st_distance(trees, edge_buffer)
-# 
-# # only keep nearest edge per tree = avoid double counting
-# joined_trees <- trees |> 
-#   group_by(accident_point_id) |>   
-#   slice_min(order_by = distance, n = 1) |>   
-#   ungroup()
 ```
 
 
@@ -490,7 +470,7 @@ trees_per_street <- trees_streets |>
 Also, for a future task, count the number of accidents along each network edge.
 
 For this task we use the same buffer as in task 7 with the trees. 
-```{r}
+```{r, echo=TRUE, collapse=TRUE}
 # find nearest edge for each accident and get osm id
 nearest_street_acc <- st_nearest_feature(bike_accidents_clipped, edge_buffer)
 nearest_street_acc <- edge_buffer$uniqueID[nearest_street_acc]
@@ -511,7 +491,7 @@ acc_per_street <- accidents_streets |>
 # Part 4 Generalised Linear Regression
 ## Task 9
 Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least one of your two models should also use the (potentially transformed) tree counts per edge from Task 7. You may use additional predictors from my examples or whatever open data you can find elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see it and hopefully include it for future years.
-```{r}
+```{r results='hide'}
 # read bike count data: Hourly Traffic at Night (`nn`) and Hourly Traffic at Daytime (`nt`).
 bike_counts <- readRDS("bike_counts_aggregated.rds")
 
@@ -520,51 +500,6 @@ joined_data <- st_join(biking_network_edges_sf_clipped, bike_counts, left = TRUE
 joined_data <- left_join(x = joined_data, y = trees_per_street, by = join_by(uniqueID == nearest_street_id))
 joined_data <- left_join(x = joined_data, y = acc_per_street, by = join_by(uniqueID == nearest_street_id))
 
-# joined_data <- st_join(joined_data, trees, left = TRUE, largest = TRUE)
-# joined_data <- st_join(joined_data, accident_points, left = TRUE, join = st_nearest_feature)
-# 
-# accident_per_joined_edge <- joined_data |>
-#   filter(!is.na(AccidentUID)) |>
-#   group_by(osm_id.x) |> 
-#   mutate(count = n()) |> 
-#   ungroup()
-# Compute the line graph and evaluate the betweenness centrality of edges
-# edges_join <- biking_network |>
-#   morph(to_linegraph) |>
-#   mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
-#   unmorph() |> 
-#   st_as_sf()
-# 
-# edges_join2 <- biking_network |>
-#   morph(to_linegraph) |>
-#   mutate(edge_btw = centrality_betweenness(weight = NULL, normalized = T)) |>
-#   unmorph() |> 
-#   st_as_sf()
-# 
-# # join with biking network amount of trees and amount of accidents
-# edges_join <- st_join(edges_join, bike_counts, left = TRUE, largest = TRUE) 
-# edges_join <- st_join(edges_join, trees, left = TRUE, largest = TRUE)
-# edges_join <- st_join(edges_join, accident_points, left = TRUE, join = st_nearest_feature)
-
-# accident_per_joined_edge <- edges_join |>
-#   filter(!is.na(AccidentUID)) |>
-#   group_by(osm_id.x) |> 
-#   mutate(count = n()) |> 
-#   ungroup()
-
-# edges_join <- biking_network |> 
-#   activate("edges") |> 
-#   st_as_sf()
-# 
-# edges_join_graph <- biking_network |> 
-#   activate("edges")
-# biking_network_btw <- biking_network |> 
-#   activate("nodes") |> 
-#   mutate(btw = betweenness(biking_network))|> 
-#   st_as_sf()
-#
-# edges_join <- st_join(edges_join, biking_network_btw, left = TRUE, largest = TRUE)
-
 # clean data 
 colnames(joined_data)
 joined_data$btw[joined_data$btw == 0] <- NA
@@ -572,14 +507,15 @@ joined_data$highway <- factor(joined_data$highway)
 levels(joined_data$highway)
 ```
 ::: {.panel-tabset .nav-pills}
+
 ## linear regression model where betweenness predicts traffic
 ```{r}
 # compute linear regression 
-linear <- lm(per_day ~ btw, data = joined_data) # y ~ x
+linear_btw <- lm(per_day ~ btw, data = joined_data) # y ~ x
 
 # Retrieve the slope and intercept of the model
-linear_m <- linear$coefficients["btw"]
-linear_b <- linear$coefficients["(Intercept)"]
+linear_m <- linear_btw$coefficients["btw"]
+linear_b <- linear_btw$coefficients["(Intercept)"]
 
 # Plot the linear relationship between btw and traffic
 ggplot(joined_data) +
@@ -589,15 +525,14 @@ ggplot(joined_data) +
   ylab("Traffic per day") +
   theme_minimal()
 ```
-This linear regression is not suited to predrict the traffic. 
-
+This linear regression is not suited to predict the traffic. 
 
 ## linear regression model where log betweenness predicts traffic
 ```{r}
 # Compute a linear regression model where log btw predicts traffic
-loglinear <- lm(per_day ~ log(btw), data = joined_data)
-loglinear_m <- loglinear$coefficients["log(btw)"]
-loglinear_b <- loglinear$coefficients["(Intercept)"]
+loglinear_btw <- lm(per_day ~ log(btw), data = joined_data)
+loglinear_m <- loglinear_btw$coefficients["log(btw)"]
+loglinear_b <- loglinear_btw$coefficients["(Intercept)"]
 
 # Plot the linear relationship between log btw and traffic
 ggplot(joined_data) +
@@ -609,143 +544,165 @@ ggplot(joined_data) +
   theme_minimal()
 
 # Compute the RMSE of the linear and log-linear model
-rmse_linear <- sqrt(mean(residuals(linear)^2))
-rmse_loglinear <- sqrt(mean(residuals(loglinear)^2))
-
-rmse_linear
-rmse_loglinear
-
-# Show summary 
-summary(linear)
-summary(loglinear)
-
-# both approaches are not useful to predict traffic
+rmse_linear <- sqrt(mean(residuals(linear_btw)^2))
+rmse_loglinear <- sqrt(mean(residuals(loglinear_btw)^2))
 ```
 Also the log of betweenness is not able to predict traffic.
 
-## Residual plot
-```{r}
-# Add the residuals of the log-linear model to the original data
-loglinear_res <- joined_data |>   
-  mutate(residuals = per_day - loglinear$fitted.values)
+## comparison of the two models
+```{r message=TRUE}
+summary(linear_btw)
+summary(loglinear_btw)
 
-# Plot the residuals
-ggplot(loglinear_res) +
-  geom_point(aes(x = btw, y = residuals, size = count_trees, colour = highway)) +
-  scale_x_continuous(trans = "log",
-                     name = "Betweenness centrality") +
-  xlab("Betweenness centrality") +
-  ylab("Traffic per day") +
-  theme_minimal()
+# both approaches are not useful to predict traffic
 ```
-The residual plot shows no clear picture what factors could predict traffic. In a next step, I try to use the highway type to predict traffic. 
+Both approaches show a high p value and a low adjusted R-squared value, meaning they aer not useful to predict traffic. 
 
-## linear regression model where highway type predicts traffic
+## linear regression model where amount of trees predicts traffic
 ```{r}
-# Compute a linear regression model where highway type predicts traffic
-categorical <- lm(per_day ~ highway + 0, data = joined_data)
-rmse_categorical <- sqrt(mean(residuals(categorical)^2)) 
+# compute linear regression 
+linear_tree <- lm(per_day ~ count_trees, data = joined_data) # y ~ x
 
-# Plot the mean traffic per highway type 
-ggplot(joined_data, aes(x = highway, y = per_day)) +
-  geom_boxplot() +
-  stat_summary(fun = mean, geom = "point", col = "pink1") + 
-  xlab("Betweenness centrality") +
-  ylab("Traffic per day") +
-  theme_minimal()
-```
-These boxplots show that highways 
+# Retrieve the slope and intercept of the model
+linear_m <- linear_tree$coefficients["count_trees"]
+linear_b <- linear_tree$coefficients["(Intercept)"]
 
-## linear regression model where log betweenness and highway type predict traffic 
-```{r}
-# Compute a linear regression model where log btw and highway type predict traffic 
-multivariate <- lm(per_day ~ log(btw) + highway, data = joined_data)
-rmse_multivariate <- sqrt(mean(residuals(multivariate)^2))
-
-multivariate_m <- multivariate$coefficients["log(btw)"]
-multivariate_b <- multivariate$coefficients["(Intercept)"]
-
-multivariate_bs <- c(multivariate_b, 
-                     multivariate_b + multivariate$coefficients["highwayliving_street"],
-                     multivariate_b + multivariate$coefficients["highwaypath"],
-                     multivariate_b + multivariate$coefficients["highwayresidential"],
-                     multivariate_b + multivariate$coefficients["highwaysecondary"])
-
-# Plot the regression lines 
+# Plot the linear relationship between btw and traffic
 ggplot(joined_data) +
-  geom_point(aes(x = btw, y = per_day, colour = highway)) +
-  geom_line(
-    data = data.frame(x = seq(300, 1000000000, by = 100000)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[1], color = "highwayliving_street")) +
-  geom_line(
-    data = data.frame(x = seq(300, 1000000000, by = 100000)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[2], color = "highwaypath")) +
-  geom_line(
-    data = data.frame(x = seq(300, 1000000000, by = 100000)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[3], color = "highwayresidential")) +
-  geom_line(
-    data = data.frame(x = seq(300, 1000000000, by = 100000)),
-    aes(x = x, y = multivariate_m * log(x) + multivariate_bs[4], color = "highwaysecondary")) +
-  scale_x_continuous(trans = "log") +
-  xlab("Betweenness centrality") +
+  geom_point(aes(x = count_trees, y = per_day)) +
+  geom_abline(slope = linear_m, intercept = linear_b, color = "blue", linetype = "solid") +
+  xlab("Tree count") +
   ylab("Traffic per day") +
   theme_minimal()
 ```
+This linear regression is not suited to predict the traffic. 
+
+## linear regression model where log amount of trees predicts traffic
+```{r}
+# Compute a linear regression model where log btw predicts traffic
+loglinear_tree <- lm(per_day ~ log(count_trees), data = joined_data)
+loglinear_m <- loglinear_tree$coefficients["log(count_trees)"]
+loglinear_b <- loglinear_tree$coefficients["(Intercept)"]
+
+# Plot the linear relationship between log btw and traffic
+ggplot(joined_data) +
+  geom_point(aes(x = count_trees, y = per_day)) +
+    geom_abline(slope = loglinear_m, intercept = loglinear_b, color = "blue", linetype = "solid") +
+  scale_x_continuous(trans = "log") +
+  xlab("Tree count") +
+  ylab("Traffic per day") +
+  theme_minimal()
+
+# Compute the RMSE of the linear and log-linear model
+rmse_linear <- sqrt(mean(residuals(linear_tree)^2))
+rmse_loglinear <- sqrt(mean(residuals(loglinear_tree)^2))
+```
+
+## comparison of the two models
+```{r message=TRUE}
+summary(linear_tree)
+summary(loglinear_tree)
+
+# both approaches are not useful to predict traffic
+```
+Also the tree count is not able to predict traffic. Both approaches are similarly bad as the prevoius ones. 
+<!-- ## Residual plot -->
+<!-- ```{r} -->
+<!-- # Add the residuals of the log-linear model to the original data -->
+<!-- loglinear_res <- joined_data |>    -->
+<!--   mutate(residuals = per_day - loglinear$fitted.values) -->
+
+<!-- # Plot the residuals -->
+<!-- ggplot(loglinear_res) + -->
+<!--   geom_point(aes(x = btw, y = residuals, size = count_trees, colour = highway)) + -->
+<!--   scale_x_continuous(trans = "log", -->
+<!--                      name = "Betweenness centrality") + -->
+<!--   xlab("Betweenness centrality") + -->
+<!--   ylab("Traffic per day") + -->
+<!--   theme_minimal() -->
+<!-- ``` -->
+<!-- The residual plot shows no clear picture what factors could predict traffic. In a next step, I try to use the highway type to predict traffic.  -->
+
+<!-- ## linear regression model where highway type predicts traffic -->
+<!-- ```{r} -->
+<!-- # Compute a linear regression model where highway type predicts traffic -->
+<!-- categorical <- lm(per_day ~ count_trees + 0, data = joined_data) -->
+<!-- rmse_categorical <- sqrt(mean(residuals(categorical)^2))  -->
+
+<!-- # Plot the mean traffic per highway type  -->
+<!-- ggplot(joined_data, aes(x = count_trees, y = per_day)) + -->
+<!--   geom_boxplot() + -->
+<!--   stat_summary(fun = mean, geom = "point", col = "pink1") +  -->
+<!--   xlab("Betweenness centrality") + -->
+<!--   ylab("Traffic per day") + -->
+<!--   theme_minimal() -->
+<!-- ``` -->
+<!-- These boxplots show that highways  -->
+
+<!-- ## linear regression model where log betweenness and highway type predict traffic  -->
+<!-- ```{r} -->
+<!-- # Compute a linear regression model where log btw and highway type predict traffic  -->
+<!-- multivariate <- lm(per_day ~ log(btw) + highway, data = joined_data) -->
+<!-- rmse_multivariate <- sqrt(mean(residuals(multivariate)^2)) -->
+
+<!-- multivariate_m <- multivariate$coefficients["log(btw)"] -->
+<!-- multivariate_b <- multivariate$coefficients["(Intercept)"] -->
+
+<!-- multivariate_bs <- c(multivariate_b,  -->
+<!--                      multivariate_b + multivariate$coefficients["highwayliving_street"], -->
+<!--                      multivariate_b + multivariate$coefficients["highwaypath"], -->
+<!--                      multivariate_b + multivariate$coefficients["highwayresidential"], -->
+<!--                      multivariate_b + multivariate$coefficients["highwaysecondary"]) -->
+
+<!-- # Plot the regression lines  -->
+<!-- ggplot(joined_data) + -->
+<!--   geom_point(aes(x = btw, y = per_day, colour = highway)) + -->
+<!--   geom_line( -->
+<!--     data = data.frame(x = seq(300, 1000000000, by = 100000)), -->
+<!--     aes(x = x, y = multivariate_m * log(x) + multivariate_bs[1], color = "highwayliving_street")) + -->
+<!--   geom_line( -->
+<!--     data = data.frame(x = seq(300, 1000000000, by = 100000)), -->
+<!--     aes(x = x, y = multivariate_m * log(x) + multivariate_bs[2], color = "highwaypath")) + -->
+<!--   geom_line( -->
+<!--     data = data.frame(x = seq(300, 1000000000, by = 100000)), -->
+<!--     aes(x = x, y = multivariate_m * log(x) + multivariate_bs[3], color = "highwayresidential")) + -->
+<!--   geom_line( -->
+<!--     data = data.frame(x = seq(300, 1000000000, by = 100000)), -->
+<!--     aes(x = x, y = multivariate_m * log(x) + multivariate_bs[4], color = "highwaysecondary")) + -->
+<!--   scale_x_continuous(trans = "log") + -->
+<!--   xlab("Betweenness centrality") + -->
+<!--   ylab("Traffic per day") + -->
+<!--   theme_minimal() -->
+<!-- ``` -->
 :::
-KOMMENTAR ZU JEDEM PLOT
 
 ## Task 10
 Compare the two models using at least one quantitative model comparison method. 
 
 ```{r}
 # Compute the AIC and BIC
-BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate))
-AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate))
+BIC <- c(BIC(linear_btw), BIC(loglinear_btw), BIC(linear_tree), BIC(loglinear_tree))
+AIC <- c(AIC(linear_btw), AIC(loglinear_btw), AIC(linear_tree), AIC(loglinear_tree))
 
-model_performance <- data.frame(model = c("linear", "loglinear", "categorical",
-                                          "multivariate"),
+model_performance <- data.frame(model = c("linear_btw", "loglinear_btw", "linear_tree",
+                                          "loglinear_tree"),
                                 BIC = BIC,
                                 AIC = AIC)
 
 # Visualise the AIC and BIC for all models in a table
 flextable(model_performance)
 ```
-The comparison of the four models show that the categorial model has the lowest AIC and BIC value and therefore predicts traffic best. This model predicts traffic using the highway type. At this point it has to be mentioned, that there are a lot of highway that are not classified, meaning their type is NA.  
+The comparison of the linear and loglinear models with betweenness and count of trees to predict traffic shows that the AIC and BIC values of the linear and loglinear approach with the treecount is much lower than for the betweenness. But considering the summaries they are not able to predict traffic. It has to mentioned, that there are very little datapoints for the traffic count. Additionally, the tree count columns contains a lot of NAs that are ignored. This might be the reason for the much lower AIC and BIC values but the low adjusted R-quared and high p-value. There is one street where seem to be over 400 trees. This might be along the river. We assume that this datapoint affects the performance of the model as well. 
 
 ## Task 11
 You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
-```{r}
-joined_data_acc <- joined_data |> 
-  filter(!is.na(count_acc),
-         !is.na(btw))
+For further evaluation, we decided to replace all NA within the column of the amount of accidents with 0, as we assume that there are no accidents if they were not reported. Additionally, we decided to remove all cases where the betweenness was NA. We thought about removing all cases with NA trees as well or replacing them with 0, but none of the two approaches made sense so we decided to limit the modification to the points mentioned above. This cleanup was necessary for the models to run without errors. 
 
+```{r message=TRUE}
 joined_data_null <- joined_data |>
   mutate(count_acc = replace_na(count_acc, 0)) |>
   filter(!is.na(btw))
-# 
-# # poission with joined data
-# poisson_model <- glm(count_acc ~ btw, data = joined_data_acc, family = "poisson")
-# summary(poisson_model)
-# 
-# # Retrieve coefficients
-# intercept_poisson <- poisson_model$coefficients[1]
-# slope_poisson <- poisson_model$coefficients[2]
-# 
-# joined_data_acc$lambda <- exp(intercept_poisson + slope_poisson * joined_data_acc$btw)
-# joined_data_acc$p_no_accident <- exp(-joined_data_acc$lambda)
-# 
-# ggplot(joined_data_acc) +
-#   geom_sf(aes(color = p_no_accident), size = 3) +
-#   scale_color_viridis_c(name = "Predicted probability", option = "H", direction = -1) +
-#   labs(title = "Predicted probability that no accident occurs per edge") +
-#   theme_void()
-
-# poission with cleaned data
-joined_data_no_na <- joined_data |> 
-  filter(!is.na(count_acc),
-         !is.na(count_trees),
-         !is.na(btw))
 
 poisson_model <- glm(count_acc ~ btw, data = joined_data_null, family = "poisson")
 summary(poisson_model)
@@ -775,6 +732,8 @@ The predicted probability that no accident occurs shows similar results as the h
 ## Task 12
 Construct a linear regression model to predict the number of accidents along network edges based on centrality measures and/or tree counts. You can freely transform variables and add other independent variables to seek a better model. Are the residuals spatially autocorrelated? (Note: Since the number of accidents is count data, Poisson regression makes more sense than simple linear regression, as you did in Task 11. However, use a simple linear regression model for this task so that you can compare the model performance against spatial regression models in Task 13).
 
+::: {.panel-tabset .nav-pills}
+## Plot to see connections
 ```{r}
 # first we plot the data
 par(mfrow = c(1,2))
@@ -782,142 +741,72 @@ plot(joined_data_null$count_acc~joined_data_null$btw)
 plot(joined_data_null$count_acc~joined_data_null$count_trees)
 
 ```
-In these plots we see the how the accident count behaves compared to the betweenness in the first plot and the amount of trees in the second plot. As basis data is used, where all NA from the columns accident count, tree count and betweenness are removed. 
+In these plots we see the how the accident count behaves compared to the betweenness in the first plot and the amount of trees in the second plot.  
 
-KOMMENTAR ZU PLOTS
-```{r}
-# first we plot the data without na
-par(mfrow = c(1,2))
-plot(joined_data_no_na$count_acc~joined_data_no_na$btw)
-plot(joined_data_no_na$count_acc~joined_data_no_na$count_trees)
-
-```
-These plots show the same as mentioned above, but additionally all NA in the highway type are removed as well. The plots show very similar results as the plots above. 
-
-```{r}
-
-# Log-Transformation der Variablen
-ggplot(joined_data_null, aes(x = log(btw), y = log(count_acc))) +
-  geom_point() +
-  geom_smooth(method = "lm", color = "red") +  # Regressionslinie
-  labs(title = "Log-transformierte Regressionsbeziehung", 
-       x = "Log(Betweenness)", y = "Log(Anzahl Unfälle)") +
-  theme_minimal()
-
-# Quadratische Transformation
-ggplot(joined_data_null, aes(x = btw, y = count_acc)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = y ~ poly(x, 2), color = "red") +  # Quadratische Regressionslinie
-  labs(title = "Quadratische Regression: Unfälle vs. Betweenness", 
-       x = "Betweenness", y = "Anzahl Unfälle") +
-  theme_minimal()
-
-# Standardisierung der Variablen
-joined_data_null$btw_scaled <- scale(joined_data_null$btw)
-joined_data_null$count_acc_scaled <- scale(joined_data_null$count_acc)
-
-# Streudiagramm der standardisierten Variablen
-ggplot(joined_data_null, aes(x = btw_scaled, y = count_acc_scaled)) +
-  geom_point() +
-  geom_smooth(method = "lm", color = "red") +
-  labs(title = "Standardisierte Regressionsbeziehung", 
-       x = "Standardisierte Betweenness", y = "Standardisierte Anzahl Unfälle") +
-  theme_minimal()
-
-```
-
-```{r}
-# create different models
+## different models
+These are the different models we created for this task
+```{r echo=TRUE}
 lm_betweenness <-lm(formula = count_acc ~ btw, data = joined_data_null)
 lm_trees <-lm(formula = count_acc ~ count_trees, data = joined_data_null)
 lm_betweenness_trees <-lm(formula = count_acc ~ btw + count_trees, data = joined_data_null)
+```
 
-# create different models
-lm_betweenness_no_na <-lm(formula = count_acc ~ btw, data = joined_data_no_na)
-lm_trees_no_na <-lm(formula = count_acc ~ count_trees, data = joined_data_no_na)
-lm_betweenness_trees_no_na <-lm(formula = count_acc ~ btw + count_trees, data = joined_data_no_na)
-
+## lm betweenness
+```{r}
 # plot lm_betweenness
-ggplot(joined_data_no_na, aes(x = btw, y = count_acc)) +
+ggplot(joined_data_null, aes(x = btw, y = count_acc)) +
   geom_point(color = "black") +  
   geom_smooth(method = "lm", color = "blue") +  
   labs(x = "Betweenness centrality",
        y = "Amount of accidents") +
   theme_minimal()
-```
-This plot shows a linear model where the betweenness explains the amount of accidents. 
 
-```{r}
 par(mfrow = c(2, 2))
 plot(lm_betweenness)
 ```
-These plots are used to test whether the requirements for a linear model are fullfilled. 
+These plots are used to test whether the requirements for a linear model are fulfilled. There is no variance homogeneity. The residuals are not normally distributed (top right). These results are not surprising as the data was not transformed. 
 
+## lm trees
 ```{r}
-par(mfrow = c(2, 2))
-plot(lm_betweenness_no_na)
-```
-
-```{r}
+par(mfrow = c(1, 1))
 # plot lm_trees
-ggplot(joined_data_no_na, aes(x = count_trees, y = count_acc)) +
+ggplot(joined_data_null, aes(x = count_trees, y = count_acc)) +
   geom_point(color = "black") +  
   geom_smooth(method = "lm", color = "blue") +  
   labs(x = "Amount of trees",
        y = "Amount of accidents") +
   theme_minimal()
-```
 
-```{r}
 par(mfrow = c(2, 2))
 plot(lm_trees)
 ```
+The plots show a very similar picture as for the lm betweenness. The residuals are not normally distributed. 
 
-```{r}
-par(mfrow = c(2, 2))
-plot(lm_trees_no_na)
-```
-
+## lm betweenness and trees
 ```{r}
 # plot lm_betweenness_trees
 par(mfrow = c(2, 2))
 plot(lm_betweenness_trees)
 ```
-
-```{r}
-par(mfrow = c(2, 2))
-plot(lm_betweenness_trees_no_na)
-```
+Again we have very similar plots as in the two prevous cases. 
+:::
 
 ```{r}
 #compare models and choose best model
-BIC <- c(BIC(lm_betweenness), BIC(lm_trees), BIC(lm_betweenness_trees))
-AIC <- c(AIC(lm_betweenness), AIC(lm_trees), AIC(lm_betweenness_trees))
+BIC <- c(BIC(lm_betweenness), BIC(lm_trees), BIC(lm_betweenness_trees), BIC(poisson_model))
+AIC <- c(AIC(lm_betweenness), AIC(lm_trees), AIC(lm_betweenness_trees), AIC(poisson_model))
 
-model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees"),
+model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", 
+                                          "lm_betweenness_trees", "poisson_model"),
                                 BIC = BIC, 
                                 AIC = AIC)
 
 # Visualise the AIC and BIC for all models in a table
 flextable(model_performance)
 ```
-The comparision of the different models show very high AIC and BIC values. The poission model had an AIC of 16960 and is therefore better than the linear model where betweenness explains the amount of accidents, but worse than the model where the trees explain the amount of accidents or where the combination of betweenness and trees explain the amount of accidents. These models were calulated with data where the NA in the columns amount of trees and accidents as well as betweenness were removed. The best model according to this comparision is the one where the combination of betweenness and trees explain the amount of accidents.
+The comparision of the different models show very high AIC and BIC values. The poission model had an AIC of 16960 and is therefore better than the linear model where betweenness explains the amount of accidents, but worse than the model where the trees explain the amount of accidents or where the combination of betweenness and trees explain the amount of accidents. The best model according to this comparision is the one where the combination of betweenness and trees explain the amount of accidents.
 
-```{r}
-#compare models and choose best model
-BIC <- c(BIC(lm_betweenness_no_na), BIC(lm_trees_no_na), BIC(lm_betweenness_trees_no_na))
-AIC <- c(AIC(lm_betweenness_no_na), AIC(lm_trees_no_na), AIC(lm_betweenness_trees_no_na))
-
-model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees"),
-                                BIC = BIC, 
-                                AIC = AIC)
-
-# Visualise the AIC and BIC for all models in a table
-flextable(model_performance)
-```
-These values are from models where highways without classification were removed as well. The AIC and BIC values are much lower, which can be explained with the fact that there are less edges inclueded. In contrast the comparison above, this one shows that the model where the betweenness centrality explains the accidents is the best model looking at the BIC. Looking at the AIC, the model where the combination of betweenness and trees explain the amount of accidents is the best. The differences between the models are much smaller than in the previous comparison. 
-
-```{r}
+```{r results='hide'}
 # check for spatial autocorrelation of best model
 # Extract residuals and bin them 
 joined_data_null_tree <- joined_data_null |> 
@@ -934,8 +823,6 @@ edge_point <- st_centroid(joined_data_null)
 joined_data_null <- full_join(edge_point, 
                              residuals_lm_btw, by = "uniqueID")
 
-class(joined_data_null)
-
 # Plot the residuals
 ggplot(joined_data_null) +
   geom_sf(aes(color = binned_residuals)) + 
@@ -948,126 +835,55 @@ joined_data_null_knear <- knearneigh(joined_data_null, k = 2)
 joined_data_null_nb <- knn2nb(joined_data_null_knear)
 summary(joined_data_null_nb)
 
-any(sapply(joined_data_null_nb, length) == 0)  # FALSE bedeutet keine isolierten Punkte
+# any(sapply(joined_data_null_nb, length) == 0)  # FALSE means no isolated points
 
 
 # Binary spatial weights
 joined_data_null_weights <- nb2listw(joined_data_null_nb, style = "B")
-
 # Moran's I 
 morans_I_residuals <- lm.morantest(lm_betweenness, listw = joined_data_null_weights,
                                    alternative = "greater")
+```
 
+```{r message=TRUE}
 morans_I_residuals
 ```
 The results from the Morans I shows a small positive autocorrelation of the data. The observed value is greater than the expected value if there was no autocorrelation. The p value is very low and there is significant autocorrelation. 
-
-```{r}
-## for no na data
-# check for spatial autocorrelation of best model
-# Extract residuals and bin them 
-residuals_lm_trees <- residuals(lm_trees_no_na) |>
-  as_tibble() |>
-  setNames("residuals") |>
-  mutate(uniqueID = joined_data_no_na$uniqueID, 
-         binned_residuals = cut_interval(residuals, n = 8))
-
-edge_point_no_na <- st_centroid(joined_data_no_na)
-
-# Join with the polygons of upstate New York
-joined_data_no_na <- full_join(edge_point_no_na, 
-                             residuals_lm_trees, by = "uniqueID")
-
-# Plot the residuals
-ggplot(joined_data_no_na) +
-  geom_sf(aes(color = binned_residuals)) + 
-  theme_minimal() +
-  scale_fill_brewer(name = 'Residuals', palette = "PRGn") +  
-  theme(axis.title=element_blank())
-
-# Contiguity neighbours
-joined_data_no_na_knear <- knearneigh(joined_data_no_na, k = 2)
-joined_data_no_na_nb <- knn2nb(joined_data_no_na_knear)
-summary(joined_data_no_na_nb)
-
-any(sapply(joined_data_no_na_nb, length) == 0)  # FALSE bedeutet keine isolierten Punkte
-
-
-# Binary spatial weights
-joined_data_no_na_weights <- nb2listw(joined_data_no_na_nb, style = "B")
-
-# Moran's I 
-morans_I_residuals_no_na <- lm.morantest(lm_trees_no_na, listw = joined_data_no_na_weights,
-                                   alternative = "greater")
-
-morans_I_residuals_no_na
-```
 
 ## Task 13
 Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression model from Task 12.
 
 ```{r}
-#spatial_lag
+#spatial_lag: does not work because of NA
 # lag_joined <- lagsarlm (formula = count_acc ~ btw + count_trees, 
 #                            data = joined_data_null_tree, listw = joined_data_null_weights)
 # 
 # summary(lag_joined)
 ```
+We tried to calculate the spatial lag but as our data still contained a lot of NAs for the tree count, it did not work. We decided to focus on the spatial error instead. 
 
-```{r}
-#spatial_lag no na
-lag_joined_no_na <- lagsarlm (formula = count_acc ~ btw + count_trees, 
-                           data = joined_data_no_na, listw = joined_data_no_na_weights)
-
-summary(lag_joined_no_na)
-```
-
-```{r}
-#spatial_error
+```{r message=TRUE, echo=TRUE}
+# spatial_error
 ser_joined  <- spautolm(formula = count_acc ~ btw + count_trees, 
                            data = joined_data_null, listw = joined_data_null_weights)
 
 summary(ser_joined)
 ```
-The summary of the spatial error shows that betweenness and the amount of trees have significant influence on the amount of accidents. Although the influence is significant, the effect is very small. The AIC is again very high. The lambda shows that there is very little autocorrelation within the residuals. 
-```{r}
-#spatial_error no na
-ser_joined_no_na  <- spautolm(formula = count_acc ~ btw + count_trees, 
-                           data = joined_data_no_na, listw = joined_data_no_na_weights)
-
-summary(ser_joined_no_na)
-```
+The summary of the spatial error shows that betweenness and the amount of trees have significant influence on the amount of accidents. Although the influence is significant, the effect is very small. The AIC is again very high. 
 
 ```{r}
-#compare models
+# compare models
 BIC <- c(BIC(lm_betweenness), BIC(lm_trees), BIC(lm_betweenness_trees), BIC(ser_joined))
 AIC <- c(AIC(lm_betweenness), AIC(lm_trees), AIC(lm_betweenness_trees), AIC(ser_joined))
 
-model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees", "ser_joined"),
+model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees", "spatial error"),
                                 BIC = BIC, 
                                 AIC = AIC)
 
 # Visualise the AIC and BIC for all models in a table
 flextable(model_performance)
 ```
-The comparision of the models and the spatial error show
-```{r}
-
-#compare models and choose best model
-BIC <- c(BIC(lm_betweenness_no_na), BIC(lm_trees_no_na), BIC(lm_betweenness_trees_no_na), 
-         BIC(lag_joined_no_na), BIC(ser_joined_no_na))
-AIC <- c(AIC(lm_betweenness_no_na), AIC(lm_trees_no_na), AIC(lm_betweenness_trees_no_na), 
-         AIC(lag_joined_no_na), AIC(ser_joined_no_na))
-
-model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", "lm_betweenness_trees",
-                                          "lag no na", "ser no na"),
-                                BIC = BIC, 
-                                AIC = AIC)
-
-# Visualise the AIC and BIC for all models in a table
-flextable(model_performance)
-```
-The 
+The comparison of the models and the spatial error shows that the spatial error outperforms the other models with a delta BIC 15 of and a delta AIC of 21 to the next best model (lm_betweenness_trees). This shows that the inclusion of spatial autocorrelation is needed and justified. 
 
 # Part 6: Spatial Autocorrelation
 ## Task 14
@@ -1081,16 +897,23 @@ joined_data_null <- joined_data_null |>
     btw_scaled = scale(btw),
     count_trees_scaled = scale(count_trees)
   )
+```
 
-
+```{r echo=TRUE}
 lmem <- lmer(count_acc ~ btw_scaled + count_trees_scaled +  (1 | highway), data = joined_data_null)
+```
 
+```{r message=TRUE}
 summary(lmem)
-plot(lmem)
-ranef(lmem)
-anova(lmem)
+```
+The summary of the linear mixed model shows litte but significant effects of betweenness and the count of trees. 
 
-# Recompute all mixed models setting REML = F
+```{r message=TRUE}
+anova(lmem)
+```
+The anova shows that our model is highly significant compared to a model without fixed effects and accounts for random effects of different highway types. 
+
+```{r echo=TRUE}
 model_fixed <- lm(count_acc ~ btw_scaled, joined_data_null)
 
 model_random_intercept <- lmer(count_acc ~ btw_scaled + (1 | highway), 
@@ -1101,9 +924,10 @@ model_random <- lmer(count_acc ~  (btw_scaled | highway),
 
 model_mixed <- lmer(count_acc ~ btw_scaled + count_trees_scaled +  (1 | highway), 
                     data = joined_data_null, REML = F)
+```
 
+```{r message=TRUE}
 AIC(model_fixed, model_random_intercept, model_random, model_mixed)
 BIC(model_fixed, model_random_intercept, model_random, model_mixed)
-
 ```
-The comparision of the four models show that the most complex model has the lowest AIC. The BIC shows very similar results as the AIC. The most complex model seems to explain the amount of accidents best. 
+The comparision of the four models show that the most complex model has the lowest AIC. The BIC shows very similar results as the AIC. The mixed model seems to explain the amount of accidents best. 
