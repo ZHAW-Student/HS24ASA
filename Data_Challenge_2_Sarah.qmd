@@ -1,7 +1,7 @@
 ---
 title: "Data Challange 2"
 author: "Sarah Wirth"
-date: "October/November/December 2024"
+date: "January 2025"
 format: 
   html:
     embed-resources: true
@@ -14,12 +14,12 @@ format:
     toc_depth: 2
     toc_float: true
 execute:                      # Set global options for execution of code blocks
-  echo: true
+  echo: false
   warning: false
   message: false
 ---
 
-```{r, echo=FALSE}
+```{r results='hide', message=FALSE, warning=FALSE}
 library(sf)
 library(rnaturalearth)
 library(igraph)
@@ -28,12 +28,25 @@ library(tidyverse)
 library(sfnetworks)
 library(spdep)
 library(reshape2)
+library(broom)
+library(viridis)
+library(deldir)
 library(dbscan)
+library(gapminder)
+library(caret)
+library(flextable)
+library(titanic)
+library(pscl)
+library(terra)
 library(leaflet)
+library(spatialreg)
+library(lme4)
+library(lmerTest)
+library(ggeffects)
 library(tmap)
 ```
 
-```{r, echo=FALSE}
+```{r, results='hide'}
 
 biking_network <- readRDS("Session_6/biking_network.rds")
 boundary <-st_read("Session2/Zurich_city_boundary_2024.gpkg")
@@ -53,7 +66,7 @@ The nodes (n = 24191) only have a geometry of the type "Point" and no other attr
 undirected
 
 
-```{r, results='hide'}
+```{r}
 biking_network
 
 edges<-biking_network |> 
@@ -72,10 +85,23 @@ edges<-dplyr::mutate(edges, testloop = (from - to))
 
 
 ```{r, results='hide'}
-nodes<-biking_network |> 
+# activate nodes and edges and save as sf object
+nodes_sf <- biking_network |> 
   activate("nodes") |> 
   st_as_sf()
 
+edges_sf <- biking_network |> 
+  activate("edges") |> 
+  st_as_sf()
+
+# activate nodes and edges and save as network
+nodes <- biking_network |> 
+  activate("nodes") 
+
+edges <- biking_network |> 
+  activate("edges")
+
+# getting coordinates from nodes
 nodes_cor<-st_coordinates(nodes)
 ```
 
@@ -85,12 +111,14 @@ abline(h = 100, col = "red")
 abline(h = 75, col = "orange")
 abline(h = 50, col = "darkgreen")
 abline(h = 25, col = "blue")
-abline(h = 10, col = "purple")
+
+legend("topleft", legend=c("100m", "75m","50m", "25m"),
+       fill=c("red", "orange", "darkgreen","blue"), cex=0.8)
 ```
 
 
-Looking at the kNN distance plot a grid distance in the range from 50m to 75m seems acceptable. To decide on which end I looked at the roads in the Niederdörfli, which has rather short streets and measured the distance between several intersections. After seeing, that the distances between the intersections are rather on the short side. I decided to create a grid with the resolution of 50m.
-As i do not know what awaits me for the rest of the DC2, I decided to create a rectangular grid as well as a hexagonal grid and choose one later.
+Looking at the kNN distance plot a grid distance in the range from 50m to 75m seems acceptable. To decide on which end I looked at the roads in the Niederdörfli, which has rather short streets and measured the distance between several intersections. After seeing, that the distances between the intersections are rather on the short side, we decided to create a grid with the resolution of 50m.
+As i do not know what awaits me for the rest of the DC2, I first decided to create a rectangular grid as well as a hexagonal grid and choose one later, but discarded the square grid early, as all other steps could be carried out with the hexagonal grid.
 
 ```{r}
 bbox<-biking_network |>
@@ -101,8 +129,8 @@ bbox<-biking_network |>
 hex_grid <- sf::st_make_grid(bbox, what = "polygons", 
                           cellsize = 50, square = FALSE, flat_topped = FALSE)
 
-square_grid<- sf::st_make_grid(bbox, what = "polygons", 
-                           cellsize = 50, square = TRUE)
+#square_grid<- sf::st_make_grid(bbox, what = "polygons", 
+                           #cellsize = 50, square = TRUE)
 
 # ggplot() +
 #   geom_sf(data = hex_grid, color = "red") + 
@@ -114,8 +142,9 @@ square_grid<- sf::st_make_grid(bbox, what = "polygons",
 * **Task 3:** Have you ever cycled in Zürich? Compute and plot the optimal path from the starting point to the endpoint of a cycling route you are familiar with. You can use the biking_network.rds provided in Session 06, or adapt the CycleNetwork.rmd to create your own network. Compare the route inferred by the network with your preferred route.
 
 
-I have never cycled in Zürich as I do not live here and consider lots of spaces kind of dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But i know the area from Wiedikon to the main station pretty well and can try to give a feedback to this.
-```{r}
+I have never cycled in Zürich as I do not live here and consider lots of spaces to be rather dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But i know the area from Wiedikon to the main station pretty well and can try to give a feedback to this.
+
+```{r results='hide'}
 wiedikon_bhf <- st_point(c(2681935.48, 1247264.46)) |> 
   st_sfc(crs = 2056)
 
@@ -138,24 +167,22 @@ heigo_graph <- biking_network |>
                    delete.vertices = FALSE) |> 
     as_sfnetwork(node_key = "id")
 
+heigo_graph_4326 <- heigo_graph |> 
+  st_transform(crs = 4326) |> 
+  activate(edges) |> 
+  st_as_sf()
+
 ```
 
 ```{r}
-nodes_heigo<-nodes[c(3449,23269),]
-nodes_heigo$name <-c("start","end")
-
-ggplot() +
-  geom_sf(data = districts[c(4,6,10,12),], fill = "lightgrey", color = "black")+
-  geom_sf_text(data = districts[c(4,6,10,12),], aes(label = KNAME),  nudge_x = 100, size = 3)+
-  geom_sf(data = heigo_graph |>  activate(edges) |> st_as_sf(), lwd = 1, col = 'orange') + 
-  geom_sf(data = nodes_heigo|> st_as_sf(), size = 2, col = 'orange')+
-  geom_sf_text(data = nodes_heigo|> 
-                 st_as_sf(), aes(label = name),  nudge_x = 100, size = 3)+
-  theme_void()
-
+leaflet() |> 
+  addTiles() |> 
+  addPolylines(data = heigo_graph_4326,
+               color = "red",
+               weight = 4)
 ```
 
-
+The path chosen here does not correspond to the shortest path I would have taken for several reasons. Firstly this path does take a rather large detour via Zürich Selnau instead of using the path via Werd. This could be due to the placement of the starting point or maybe the chosen algorithm causes this behavior. For the fastest route I would have used Werd and as my personal safety route i would have chosen a route using some small streets with little traffic. 
 
 * **Task 4:** In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
 
@@ -163,49 +190,62 @@ ggplot() +
 
 I chose the betweenness centrality as it should highlight places where bike traffic almost is forced through as they are the shortest path for many routes which should lead to more traffic in those areas.
 
-• What potential problems might arise with this measure? For example, the network contains many
-parallel paths in close proximity, which could influence measures that rely on shortest-path computations.
+• What potential problems might arise with this measure? As an example, the network contains many parallel paths in close proximity, which could influence measures that rely on shortest-path computations. 
 
-For this I assume, that cyclists do not avoid traffic hotspots, which i would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits.
-
-Potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
-
+For this measure I assume, that cyclists do not avoid traffic hotspots, which i would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits. Also we might will need to transform the network as the betweenness centrality is calculated for the nodes. Other potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
 
 • Plot your chosen measure for the network.
 
-```{r}
-biking_network <- biking_network |> 
-  activate(nodes) |>  
+```{r results='hide'}
+# Compute the betweenness centrality
+biking_network_nodes <- nodes |> 
+  activate("nodes") |> 
   mutate(btw = betweenness(biking_network))
 
-nodes_btw<- biking_network |> 
-  activate(nodes) 
+biking_network_edges <- edges |> 
+  activate("edges") |> 
+  mutate(btw = edge_betweenness(biking_network))
+
+biking_network_nodes_sf <- nodes |> 
+  activate("nodes") |> 
+  mutate(btw = betweenness(biking_network)) |> 
+  st_as_sf()
+
+biking_network_edges_sf <- edges |> 
+  activate("edges") |> 
+  mutate(btw = edge_betweenness(biking_network)) |> 
+  st_as_sf()
 ```
 
+::: {.panel-tabset .nav-pills}
 
+## betweenness centrality of nodes
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
-  # Plot the entire network
-  geom_sf(data = biking_network |> activate(edges) |> as_tibble() |> st_as_sf(), 
+  geom_sf(data = biking_network_edges |>  activate(edges) |>  as_tibble() |>  st_as_sf(), 
           col = 'white') +
-  geom_sf(data = biking_network |> activate(nodes) |> as_tibble() |> st_as_sf(), 
-          aes(size=btw), col = "black")+
+  geom_sf(data = biking_network_nodes |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
+          aes(col=btw), size = 0.5) +  
+  scale_color_viridis_c(option = "turbo", name = "betweenness (nodes)") +
   theme_void()
 ```
 
+## betweenness centrality of edges
 ```{r}
-a<-st_as_sf(nodes_btw)
-
-# leaflet() |>  addProviderTiles("Esri.WorldTopoMap", group = "Terrain")  |> 
-#  addCircleMarkers(data =a, radius = a$btw, color = "black", opacity = 1)
-#######will crash r
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = biking_network_edges_sf, aes(color = btw), size = 1) +
+  scale_color_viridis_c(option = "turbo", name = "betweenness (edges)") +
+  theme_void()
 ```
+:::
+
+Although it is rather difficult to identify anything at the scale of the whole city some details are recognizable. Several nodes in the city centre (Kreis 1) and the nodes of the Bucheggstrasse have a elevated betweenness compared to most other nodes. For the edges a clearer picture is present. Firstly the Hardbrücke and the Rosengartenstrasse as well as the Bucheggstrasse have a strongly elevated betweenness compared to the rest of Zürich. Also some edges along the Limmat are highlighted as well as the Sihlhochstrasse. All those roads are well known for having rather high traffic. Therefore the betweenness highlights areas with high traffic pretty well.
 
 
 * **Task 5:** A new bicycle infrastructure project, the “Stadttunnel” is under construction, connecting the coordinates (8.53619°E, 47.37768°N) with (8.53783°E, 47.38024°N) beneath the station. Analyse how this project affects the network measure you selected in Task 4, and visualise the changes. Depending on when you retrieved the data from OSM, the Stadttunnel might already be included in the network or not. If you encounter difficulties removing or adding the edge, please refer to the script remove_or_add_edge.r available on OLAT.
 
-can be another statistic. should be applied to edges but not the whole network.
 
 ```{r}
 Velotunnel<-filter(edges,name=="Velotunnel")
@@ -221,15 +261,9 @@ Velotunnel_real <- data.frame(
 
 Velotunnel_real_sf<- st_as_sf(Velotunnel_real, coords = c("lon", "lat"), 
                          crs = 4326)
-   
-leaflet() |>  addProviderTiles("Esri.WorldTopoMap", group = "Terrain")  |> 
- addPolylines(data = Velotunnel_compare, color = "steelblue", weight = 2, opacity = 1, group = "Route") |> 
- addCircleMarkers(data =Velotunnel_real, radius = 2, color = "black", opacity = 1)
-   
 ```
 
-The tunnel is already present in the dataset although it does not quite end at one of the given coordinates.
-
+The tunnel is already present in the dataset although it does not end exactly at one of the given coordinates.
 
 ##Removing the tunnel
 ```{r}
@@ -266,7 +300,7 @@ biking_network_no_stadttunnel |>
 
 ```
 
-##Calculate Betweenness centrality for Network without the Stadttunnel
+##Calculate Betweenness centrality for Network with and without the Stadttunnel
 ```{r}
 biking_network_no_stadttunnel <- biking_network_no_stadttunnel |> 
   activate(nodes) |>  
@@ -274,43 +308,71 @@ biking_network_no_stadttunnel <- biking_network_no_stadttunnel |>
 
 nodes_btw_no_stadttunnel<- biking_network |> 
   activate(nodes) 
+
+biking_network_no_stadttunnel_sf <- biking_network_no_stadttunnel |> 
+  activate("edges") |> 
+  mutate(btw = edge_betweenness(biking_network_no_stadttunnel)) |> 
+  st_as_sf()
 ```
 
 ::: {.panel-tabset .nav-pills}
-##Betweenness centrality for center of Zürich with the Stadttunnel
+## Betweenness centrality nodes for center of Zürich with the Stadttunnel
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   # Plot the entire network
-  geom_sf(data = biking_network |> activate(edges) |> as_tibble() |> st_as_sf(), 
+  geom_sf(data = biking_network_edges |>  activate(edges) |>  as_tibble() |>  st_as_sf(), 
           col = 'white') +
-  geom_sf(data = biking_network |> activate(nodes) |> as_tibble() |> st_as_sf(), 
-          aes(size=btw), col = "black")+
-  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE)+
+  geom_sf(data = biking_network_nodes |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
+          aes(size=btw), col = "black") +  
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
   theme_void()
-
 ```
 
-
-##Betweenness centrality for center of Zürich without the Stadttunnel
+## Betweenness centrality nodes for center of Zürich without the Stadttunnel
 ```{r}
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   # Plot the entire network
-  geom_sf(data = biking_network_no_stadttunnel |> activate(edges) |> as_tibble() |> st_as_sf(), 
+  geom_sf(data = biking_network_no_stadttunnel |>  activate(edges) |>  as_tibble() |>  st_as_sf(), 
           col = 'white') +
-  geom_sf(data = biking_network_no_stadttunnel |> activate(nodes) |> as_tibble() |> st_as_sf(), 
-          aes(size=btw), col = "black")+
-  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE)+
+  geom_sf(data = biking_network_no_stadttunnel |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
+          aes(size=btw), col = "black") +  
+    coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) + 
   theme_void()
+```
 
+## Betweenness centrality edges for center of Zürich with the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = biking_network_edges_sf, aes(color = btw), size = 10) +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal"
+  )
+```
+
+## Betweenness centrality edges for center of Zürich without the Stadttunnel
+```{r}
+ggplot() +
+  geom_sf(data = districts, fill = "lightgrey", color = NA) +
+  geom_sf(data = biking_network_no_stadttunnel_sf, aes(color = btw), size = 3) +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
+  coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.box = "horizontal"
+  )
 ```
 :::
 
+The project strongly increases the betweeness centrality of the nodes at the Drahtschmidlisteg across the Limmat, the Sihlquai as well as the Kasernenstrasse on the southern side of the trainstation. It is also apparent, that the Betweenness of all nodes eastern of the Mainstation is a little decreased by the addition of the Stadttunnel.Looking at the edges the same trend is visible. But it is also easily visible how the Betweenness on the southern side of the trainstation at the Poststrasse and the Gessnerallee is reduced through the addition of the Stadttunnel. Therefore the Stadttunnel should overall reduce bicycle presence in many rather dangerous areas surrounding the mainstation which could lead to a lower numbe of accidents involving cyclists in this region.
 
-##hier könnte man leaflet probieren---------------------------------------------------
-
-The project strongly increases the betweeness centrality of the nodes at the Drahtschmidlisteg across the Limmat, the Sihlquai as well as the Kasernenstrasse on the southern side of the trainstation.
 
 #Third part: Spatial Autocorrelation
 Three weeks ago, we created a regular grid covering Zurich’s bike network (Task 2). Today, you will use this grid for further analysis. You will also need data on road accidents and Zurich’s tree inventory (“Baumkataster”).
@@ -319,17 +381,37 @@ The road accident data is available on Open Data Zurich (https://data.stadt-zuer
 * **Task 6:**  Determine the number of bike accidents occurring in each grid cell. Use the function st_contains if your grid is made up of polygons, or st_nearest_feature if it consists of points. Plot the Getis-Ord Gi statistic to visualise accident counts per cell. Assess whether the results are significant and identify where accident hot spots are located. If you recognise the locations, consider whether the hot spots share common characteristics or features.
 
 ##Load data
-```{r}
-str(st_layers("Session_9/roadtrafficaccidentlocations.gpkg"))
+```{r results='hide'}
+# read accident data
 accidents <- st_read("Session_9/roadtrafficaccidentlocations.gpkg")
+#st_crs(accidents)
+
+# only keep bike accidents
 bike_accidents <- accidents |> 
-  filter(AccidentInvolvingBicycle == "true" , !AccidentSeverityCategory == "as4") # removing the property damage beforehand
-bike_accidents<-st_zm(bike_accidents, drop = TRUE, what = "ZM")
-st_crs(accidents)
-  
-str(st_layers("Session_9/Baumkataster/data/data.gpkg"))
+  filter(AccidentInvolvingBicycle == "true")
+
+# remove columns that are not needed
+#colnames(bike_accidents)
+bike_accidents[3:6] <- list(NULL)
+#colnames(bike_accidents)
+bike_accidents[4:10] <- list(NULL)
+#colnames(bike_accidents)
+bike_accidents[5:8] <- list(NULL)
+#colnames(bike_accidents)
+bike_accidents[10:22] <- list(NULL)
+#colnames(bike_accidents)
+
+#bike_accidents<-st_zm(bike_accidents, drop = TRUE, what = "ZM")
+#st_crs(accidents)
+
+##Read Baumkataster data  
+#str(st_layers("Session_9/Baumkataster/data/data.gpkg"))
 baumkataster <-st_read("Session_9/Baumkataster/data/data.gpkg",layer="gsz.baumstandorte_k")
-st_crs(baumkataster)
+# remove columns that are not needed
+#colnames(baumkataster_shp)
+baumkataster_shp[3:16] <- list(NULL)
+#colnames(baumkataster_shp)
+#st_crs(baumkataster)
 
 ```
 
@@ -369,41 +451,40 @@ hex_centro_acc_4326<- st_transform(hex_centro_acc, crs = 4326)
 leaflet(hex_centro_acc_4326) |> 
   addProviderTiles("Esri.WorldTopoMap", group = "Terrain") |> 
   addCircleMarkers(
-    color = ~colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG)(hex_centro_acc_4326$gi_value_no_localG),  # Farbskala
+    color = ~colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG , reverse = TRUE)(hex_centro_acc_4326$gi_value_no_localG), 
     fillOpacity = 0.7,
     radius = 3,
     stroke = FALSE,
-    popup = ~paste("Gi-Wert: ", round(gi_value_no_localG, 2))) |>  
+    popup = ~paste("Gi value: ", round(gi_value_no_localG, 2))) |>  
   addLegend(
     position = "bottomright",
-    pal = colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG),
+    pal = colorNumeric("RdBu", hex_centro_acc_4326$gi_value_no_localG , reverse = TRUE),
     values = hex_centro_acc_4326$gi_value_no_localG,
-    title = "Getis-Ord Gi-Wert",
+    title = "Getis-Ord Gi value",
     opacity = 0.7)
-
-tm_shape(districts) + 
-  tm_borders() + 
-  tm_shape(hex_centro_acc)+
-  tm_dots("gi_value", palette = "RdBu") 
-
 ```
+
+Saskia:There are more accidents around the Central, along the Limmatquai, Langstrasse and Hardbrücke. These are well known locations for a lot of traffic, not only cars but also tram, busses and pedestrian. It seems quite plausible that more accidents happen in these locations. Another hotspot is the Bucheggplatz, where there is also a lot of traffic with public transport. Looking at these hotspots it can be said that when there is a lot of traffic also with trams and busses, there are more accident. This is plausible as bikers can for example get stuck on the tracks of the trams and there are normally a lot of people who walk across the street before looking or thinking. Zooming out a little bit on the map you can also see that more accidents tend to happen along the roads with higher centrality as shown in task 5. 
+
+Sarah
+Overall accidents seemingly occur in areas which are well known for having lots of traffic and are seemingly significant. At the first look the high Getis-Ord Gi values at underpass of the Langstrasse and the Limmatquai stand out. For the Limmatquai it is not surprising as lots of different traffic types occur at this road and the area is known for its traffic (cars and trams). The Langstrasse underpass on the other hand surprises me. Although this Underpass faces lots of traffic there are bike/pedestrian lanes available, which are separated from car-traffic. Maybe this area remains an accident hotspot due to cyclists taking the bike-lane on the road instead of the separate underpass. Another option is that the rather narrow separate underpasses could lead to accidents, if cyclists enter them with to much speed. This would explain why the city of Zürich plans on enlarging those underpasses by 2m. Other hotspots inclde the Hardstrasse and Bucheggplatz which are also known for being busy and having different types of traffic mixing. 
 
 
 * **Task 7:** In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
-Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest Roadtype bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. 
+Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest Roadtype bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. Therefore I choose a distance of 5m, which contains enough space to include half of the road, the pedestrian path and enough space for the trees to grow. This disctance also allows 1. Klasse roads to be included. 
 
-As I also do not want to calculate this on a distance, which would make it to computationally taxing, I have to make some compromises. Therefore I choose a distance of 4m, which allows trees along 1. Klasse roads to be included.
+
+As the computers of Saskia and I do not habe enough computational power to join for the area of the whole city, we chose to focus on the region of Kreis 1, 4 and 5.
+
+We keep this fokus for the remaining of DC2, as it was not possible to take the whole city into account. 
+As I also do not want to calculate this on a distance, which would make it to computationally taxing, I have to make some compromises. 
 
 Double counting
 
 all this can be found in counts.rmd of session 10
 
-```{r}
 
-sd<-st_is_within_distance(edges,baumkataster,dist = 8)#does not worl 
-
-```
 
 
 * **Task 8:** Also, for a future task, count the number of accidents along each network edge.
