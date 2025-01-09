@@ -693,76 +693,165 @@ Looking at the data table the results show similar results to what was discussed
 
 * **Task 11:** You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
+For the rest of the DC2 following changes will be applied: The NAs within the column with the amount of accidents with the number 0, as we assume that all accidents in Zürich have been properly reported. Also all cases with a NA for the betweenness were excluded as well. Those could have been created by improperly connected roads in the network. We first thought about removing all cases where trees had NAs as well, but we did not as the Baumkataster only contains trees owned by the city but not private trees. Therefore we cannot be sure that no trees are present in the cases with NAs, which led to us keeping the NAs for the trees. The cleanup was required to ensure the code to run properly without errors.
 
-```{r}
+```{r message=TRUE}
+joined_data_null <- joined_data |>
+  mutate(count_acc = replace_na(count_acc, 0)) |>
+  filter(!is.na(btw))
 
+poisson_model <- glm(count_acc ~ btw, data = joined_data_null, family = "poisson")
+summary(poisson_model)
 ```
 
+This summary contains a small but highly significant influence of the betweenness centrality. The residual deviance is a little smaller than the null deviance indicating that the model is slightly better. The AIC with a value of 16960 is a lot higher than the AIC of all previous models.
+
+```{r}
+# Retrieve coefficients
+intercept_poisson <- poisson_model$coefficients[1]
+slope_poisson <- poisson_model$coefficients[2]
+
+joined_data_null$lambda <- exp(intercept_poisson + slope_poisson * joined_data_null$btw)
+joined_data_null$p_no_accident <- exp(-joined_data_null$lambda)
+
+# plot data
+ggplot(joined_data_null) +
+  geom_sf(aes(color = p_no_accident), size = 3) +
+  scale_color_viridis_c(name = "predicted probability", option = "H", direction = -1) +
+  labs(title = "Predicted probability that no accident occurs per edge") +
+  theme_void()
+```
+
+ 
+The predicted probability represents the accident hotspots from task 6 pretty accurate and hotspots like the Limmatquai, the roads adjacent on the northern side of the Limmat, the Langstrasse underpass and the Hardbrücke as well as the roads leading off it in northern and southwestern direction. Although the Stadttunnel is not in use yet the high betweenness of it and its adjacent roads lead to a high predicted probability that an accident occurs. This also highlights that the betweenness alone is not enough to represent the risk of accidents occurring. Therefore maybe adding other predictors or account for spatial components could improve the model.
 
 #Fifth part: Spatial Regression
 This week, you will perform spatial regression to predict the number of accidents on the bicycle network. However, spatial regression models (both spatial lag and error models) require a huge amount of computation time and memory space, and it is probably difficult to analyze the whole network. In the following tasks, you can focus on some regions or districts of the city of Zurich so that you can finish your task within a practical computation time.
 
 * **Task 12:**  Construct a linear regression model to predict the number of accidents along network edges based on centrality measures and/or tree counts. You can freely transform variables and add other independent variables to seek a better model. Are the residuals spatially autocorrelated? (Note: Since the number of accidents is count data, Poisson regression makes more sense than simple linear regression, as you did in Task 11. However, use a simple linear regression model for this task so that you can compare the model performance against spatial regression models in Task 13).
 
+
+::: {.panel-tabset .nav-pills}
+## Plot to see connections
 ```{r}
-#first we plot the data
-
-#transform variables, which could improve model fit
-
-#plot data again 
-
-#create different models
-lm_betweenness <-lm(formula = accident ~ betweenness, data = data)
-lm_trees <-lm(formula = accident ~ trees, data = data)
-lm_betweenness_trees <-lm(formula = accident ~ betweenness + trees, data = data)
+# first we plot the data
+par(mfrow = c(1,2))
+plot(joined_data_null$count_acc~joined_data_null$btw)
+plot(joined_data_null$count_acc~joined_data_null$count_trees)
 
 ```
+ 
+Although it might seem that the accident count drops with increasing betweenness and tree count the high count of low numbers of accidents could probably show another trend.
+
+## different models
+These are the different models we created for this task. 
+As transforming variables has not contributed to any major improvements in the models, for this task the variables will not be transformed.
+```{r echo=TRUE}
+lm_betweenness <-lm(formula = count_acc ~ btw, data = joined_data_null)
+lm_trees <-lm(formula = count_acc ~ count_trees, data = joined_data_null)
+lm_betweenness_trees <-lm(formula = count_acc ~ btw + count_trees, data = joined_data_null)
+```
+
+## lm betweenness
+```{r}
+# plot lm_betweenness
+ggplot(joined_data_null, aes(x = btw, y = count_acc)) +
+  geom_point(color = "black") +  
+  geom_smooth(method = "lm", color = "blue") +  
+  labs(x = "Betweenness centrality",
+       y = "Amount of accidents") +
+  theme_minimal()
+
+par(mfrow = c(2, 2))
+plot(lm_betweenness)
+```
+Looking at the amount of accidents plotted against the betweenness centrality again a linear model seems to be a bad fit. The plot of the residuals against the fitted values shows a wedge open to the left, which indicates a violation of variance homogeniety. Also the deviation of the points from the dashed line in the Q-Q plot indicates a violation of the normal distribution of the residues
+
+Saskia:These plots are used to test whether the requirements for a linear model are fulfilled. There is no variance homogeneity. The residuals are not normally distributed (top right). These results are not surprising as the data was not transformed. 
+
+## lm trees
+```{r}
+par(mfrow = c(1, 1))
+# plot lm_trees
+ggplot(joined_data_null, aes(x = count_trees, y = count_acc)) +
+  geom_point(color = "black") +  
+  geom_smooth(method = "lm", color = "blue") +  
+  labs(x = "Amount of trees",
+       y = "Amount of accidents") +
+  theme_minimal()
+
+par(mfrow = c(2, 2))
+plot(lm_trees)
+```
+Saskia:The plots show a very similar picture as for the lm betweenness. The residuals are not normally distributed. 
+
+## lm betweenness and trees
+```{r}
+# plot lm_betweenness_trees
+par(mfrow = c(2, 2))
+plot(lm_betweenness_trees)
+```
+Saskia:Again we have very similar plots as in the two prevous cases. 
+:::
 
 ```{r}
 #compare models and choose best model
-BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
-AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
+BIC <- c(BIC(lm_betweenness), BIC(lm_trees), BIC(lm_betweenness_trees), BIC(poisson_model))
+AIC <- c(AIC(lm_betweenness), AIC(lm_trees), AIC(lm_betweenness_trees), AIC(poisson_model))
 
-model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
-                                          "multivariate", "extreme"),
+model_performance <- data.frame(model = c("lm_betweenness", "lm_trees", 
+                                          "lm_betweenness_trees", "poisson_model"),
                                 BIC = BIC, 
                                 AIC = AIC)
+
+# Visualise the AIC and BIC for all models in a table
+flextable(model_performance)
 ```
+Saskia:The comparision of the different models show very high AIC and BIC values. The poission model had an AIC of 16960 and is therefore better than the linear model where betweenness explains the amount of accidents, but worse than the model where the trees explain the amount of accidents or where the combination of betweenness and trees explain the amount of accidents. The best model according to this comparision is the one where the combination of betweenness and trees explain the amount of accidents.
 
-```{r}
-#check for spatial autocorrelation of best model
+```{r results='hide'}
+# check for spatial autocorrelation of best model
 # Extract residuals and bin them 
-residuals_lm_leukaemia <- residuals(lm_leukaemia) %>%
-  as_tibble |>
-  setNames("residuals") |>
-  mutate(id = row_number()) |>
-  mutate(binned_residuals = cut_interval(residuals, n = 8))
+joined_data_null_tree <- joined_data_null |> 
+  mutate(count_trees = replace_na(count_trees,0))
 
-# Join with the polygons of upstate New York
-leukaemia_up_ny <- full_join(leukaemia_up_ny, 
-                             residuals_lm_leukaemia, by = "id")
+residuals_lm_btw <- residuals(lm_betweenness) |>
+  as_tibble() |>
+  setNames("residuals") |>
+  mutate(uniqueID = joined_data_null$uniqueID, 
+         binned_residuals = cut_interval(residuals, n = 8))
+
+edge_point <- st_centroid(joined_data_null)
+
+joined_data_null <- full_join(edge_point, 
+                             residuals_lm_btw, by = "uniqueID")
 
 # Plot the residuals
-ggplot(leukaemia_up_ny) +
-  geom_sf(aes(fill = binned_residuals)) + 
+ggplot(joined_data_null) +
+  geom_sf(aes(color = binned_residuals)) + 
   theme_minimal() +
-  scale_fill_brewer(name='Residuals',
-                    palette="PRGn") +
+  scale_fill_brewer(name = 'Residuals', palette = "PRGn") +  
   theme(axis.title=element_blank())
 
 # Contiguity neighbours
-up_ny_nb <- poly2nb(leukaemia_up_ny)
+joined_data_null_knear <- knearneigh(joined_data_null, k = 2)
+joined_data_null_nb <- knn2nb(joined_data_null_knear)
+summary(joined_data_null_nb)
+
+# any(sapply(joined_data_null_nb, length) == 0)  # FALSE means no isolated points
+
 
 # Binary spatial weights
-up_ny_weights <- nb2listw(up_ny_nb, style = "B")
-
+joined_data_null_weights <- nb2listw(joined_data_null_nb, style = "B")
 # Moran's I 
-morans_I_residuals <- lm.morantest(lm_leukaemia, listw = up_ny_weights,
+morans_I_residuals <- lm.morantest(lm_betweenness, listw = joined_data_null_weights,
                                    alternative = "greater")
-
-morans_I_residuals
 ```
 
+```{r message=TRUE}
+morans_I_residuals
+```
+Saskia:The results from the Morans I shows a small positive autocorrelation of the data. The observed value is greater than the expected value if there was no autocorrelation. The p value is very low and there is significant autocorrelation. 
 
 * **Task 13:** Apply a spatial regression model (spatial lag, spatial error, or both) using the same independent variables. Compare the spatial regression model to the simple linear regression model from Task 12.
 
