@@ -406,7 +406,7 @@ bike_accidents[10:22] <- list(NULL)
 
 ##Read Baumkataster data  
 #str(st_layers("Session_9/Baumkataster/data/data.gpkg"))
-baumkataster <-st_read("Session_9/Baumkataster/data/data.gpkg",layer="gsz.baumstandorte_k")
+baumkataster_shp <-st_read("Session_9/Baumkataster/data/gsz.baumkataster_baumstandorte.shp")
 # remove columns that are not needed
 #colnames(baumkataster_shp)
 baumkataster_shp[3:16] <- list(NULL)
@@ -415,12 +415,13 @@ baumkataster_shp[3:16] <- list(NULL)
 
 ```
 
+
 ##Determine number of accidents per grid cell
 ```{r}
 # grid to sf
 hex_grid_sf <- st_as_sf(hex_grid, crs = 2056)
 
-count_acc_hex <-st_contains( hex_grid_sf,bike_accidents)
+count_acc_hex <-st_contains(hex_grid_sf,bike_accidents)
 counts <- lengths((count_acc_hex))
 
 acc_in_hex <- hex_grid_sf
@@ -464,85 +465,231 @@ leaflet(hex_centro_acc_4326) |>
     opacity = 0.7)
 ```
 
-Saskia:There are more accidents around the Central, along the Limmatquai, Langstrasse and Hardbrücke. These are well known locations for a lot of traffic, not only cars but also tram, busses and pedestrian. It seems quite plausible that more accidents happen in these locations. Another hotspot is the Bucheggplatz, where there is also a lot of traffic with public transport. Looking at these hotspots it can be said that when there is a lot of traffic also with trams and busses, there are more accident. This is plausible as bikers can for example get stuck on the tracks of the trams and there are normally a lot of people who walk across the street before looking or thinking. Zooming out a little bit on the map you can also see that more accidents tend to happen along the roads with higher centrality as shown in task 5. 
-
-Sarah
-Overall accidents seemingly occur in areas which are well known for having lots of traffic and are seemingly significant. At the first look the high Getis-Ord Gi values at underpass of the Langstrasse and the Limmatquai stand out. For the Limmatquai it is not surprising as lots of different traffic types occur at this road and the area is known for its traffic (cars and trams). The Langstrasse underpass on the other hand surprises me. Although this Underpass faces lots of traffic there are bike/pedestrian lanes available, which are separated from car-traffic. Maybe this area remains an accident hotspot due to cyclists taking the bike-lane on the road instead of the separate underpass. Another option is that the rather narrow separate underpasses could lead to accidents, if cyclists enter them with to much speed. This would explain why the city of Zürich plans on enlarging those underpasses by 2m. Other hotspots inclde the Hardstrasse and Bucheggplatz which are also known for being busy and having different types of traffic mixing. 
-
+Overall accidents seemingly occur in areas which are well known for having lots of traffic and are seemingly significant. At the first look the high Getis-Ord Gi values at underpass of the Langstrasse and the Limmatquai stand out. For the Limmatquai it is not surprising as lots of different traffic types occur at this road and the area is known for its traffic (cars and trams). The Langstrasse underpass on the other hand surprises me. Although this Underpass faces lots of traffic there are bike/pedestrian lanes available, which are separated from car-traffic. Maybe this area remains an accident hotspot due to cyclists taking the bike-lane on the road instead of the separate underpass. Another option is that the rather narrow separate underpasses could lead to accidents, if cyclists enter them with to much speed. This would explain why the city of Zürich plans on enlarging those underpasses by 2m. Other hotspots include the Hardstrasse and Bucheggplatz which are also known for being busy and having different types of traffic mixing. 
 
 * **Task 7:** In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
-Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest Roadtype bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. Therefore I choose a distance of 5m, which contains enough space to include half of the road, the pedestrian path and enough space for the trees to grow. This disctance also allows 1. Klasse roads to be included. 
+Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest Roadtype bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. Therefore I choose a distance of 5m, which contains enough space to include half of the road, the pedestrian path and enough space for the trees to grow. This disctance also allows 1. Klasse roads to be included. As the computers of Saskia and I do not have enough computational power to join for the area of the whole city, we chose to focus on the region of Kreis 1, 4 and 5. This focus will be kept for the rest of DC2.
+
+To prevent double counting all trees outside of the 5m buffer around the edges were dropped in a first step, then for all remaining trees the closest present edge was found and the ID of the nearest edge was assigned to each tree. For this step a unique id for each edge was created. Then all trees per ID were counted and this count was joined back to the edges of the network.
 
 
-As the computers of Saskia and I do not habe enough computational power to join for the area of the whole city, we chose to focus on the region of Kreis 1, 4 and 5.
+```{r}
+# we focus on districts 1, 4 and 5:
+centre <- districts |> 
+  filter(KNR %in% c(1,4,5))
 
-We keep this fokus for the remaining of DC2, as it was not possible to take the whole city into account. 
-As I also do not want to calculate this on a distance, which would make it to computationally taxing, I have to make some compromises. 
+bbox_centre <- centre |> 
+  st_bbox() |> 
+  st_as_sfc() 
 
-Double counting
+bbox_centre_sf <- st_sf(geometry = bbox_centre)
 
-all this can be found in counts.rmd of session 10
+# clip all data to the bbox
+trees_clipped <- st_intersection(bbox_centre_sf, baumkataster_shp)
+bike_accidents_clipped <- st_intersection(bbox_centre_sf, bike_accidents)
+biking_network_edges_sf_clipped <- st_intersection(bbox_centre_sf, biking_network_edges_sf)
+edges_sf_clipped <- st_intersection(bbox_centre_sf, edges_sf)
+
+# create unique id
+biking_network_edges_sf_clipped$uniqueID <- paste(biking_network_edges_sf_clipped$osm_id, biking_network_edges_sf_clipped$from, biking_network_edges_sf_clipped$to, sep = "_")
+edges_sf_clipped$uniqueID <- paste(edges_sf_clipped$osm_id, edges_sf_clipped$from, edges_sf_clipped$to, sep = "_")
+```
 
 
+```{r echo=TRUE, collapse=TRUE}
+# create buffer around edges, 5 m buffer = 3 m street + 1 m sidewalk, + 1 m buffer
+edge_buffer <- st_buffer(edges_sf_clipped, dist = 5)
+
+# find nearest edge for each tree and get unique id
+nearest_street <- st_nearest_feature(trees_clipped, edge_buffer)
+nearest_street <- edge_buffer$uniqueID[nearest_street]
+
+# add unique id from nearest street to trees
+trees_streets <- trees_clipped |> 
+  mutate(nearest_street_id = nearest_street)
+  
+# remove all trees that don't have a street id
+trees_streets <- trees_streets[!is.na(trees_streets$nearest_street_id), ]
+
+trees_per_street <- trees_streets |> 
+  group_by(nearest_street_id) |> 
+  summarise(count_trees = n()) |> 
+  st_drop_geometry()
+```
 
 
 * **Task 8:** Also, for a future task, count the number of accidents along each network edge.
 
-```{r}
+We re-use the buffer and the unique id of the last task for this task.
+```{r, echo=TRUE, collapse=TRUE}
+# find nearest edge for each accident and get osm id
+nearest_street_acc <- st_nearest_feature(bike_accidents_clipped, edge_buffer)
+nearest_street_acc <- edge_buffer$uniqueID[nearest_street_acc]
 
+# add unique id from nearest street to accidents
+accidents_streets <- bike_accidents_clipped |> 
+  mutate(nearest_street_id = nearest_street_acc)
+  
+# remove all accidents that don't have a street id
+accidents_streets <- accidents_streets[!is.na(accidents_streets$nearest_street_id), ]
+
+acc_per_street <- accidents_streets |> 
+  group_by(nearest_street_id) |> 
+  summarise(count_acc = n()) |> 
+  st_drop_geometry()
 ```
 
-
 #Fourth part: Spatial Autocorrelation
-There are a few automatic bicycle traffic counters in Zurich and nearby municipalities. To
-estimate traffic on all roads in the city, we want a regression model that best predicts the
-counts at these locations. The traffic counts of the city are published online. The locations
-of the counting machines is published on https://data.stadt-zuerich.ch/dataset/geo_standorte_
-der_automatischen_fuss__und_velozaehlungen while the individual counts are in a big CSV
-file: https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo/
-download/2022_verkehrszaehlungen_werte_fussgaenger_velo.csv.
-We provided the data for you in the file bike_counts_aggregated.rds. The script in counts.Rmd
-shows how the count data were downloaded and mapped to the bike network.
+There are a few automatic bicycle traffic counters in Zurich and nearby municipalities. To estimate traffic on all roads in the city, we want a regression model that best predicts the counts at these locations. The traffic counts of the city are published online. The locations of the counting machines is published on https://data.stadt-zuerich.ch/dataset/geo_standorte_der_automatischen_fuss__und_velozaehlungen while the individual counts are in a big CSV file: https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo/download/2022_verkehrszaehlungen_werte_fussgaenger_velo.csv. We provided the data for you in the file bike_counts_aggregated.rds. The script in counts.Rmd shows how the count data were downloaded and mapped to the bike network.
 
-##Load data
-```{r}
-bike_counts <- readRDS("Session_10/bike_counts_aggregated.rds")
+```{r results='hide'}
+bike_counts <- readRDS("Session_10/bike_counts_aggregated.rds")##Load data
+
+# join sf of edges containing btw with bike counts, trees and accident points
+joined_data <- st_join(biking_network_edges_sf_clipped, bike_counts, left = TRUE, largest = TRUE)
+joined_data <- left_join(x = joined_data, y = trees_per_street, by = join_by(uniqueID == nearest_street_id))
+joined_data <- left_join(x = joined_data, y = acc_per_street, by = join_by(uniqueID == nearest_street_id))
+
+# clean data 
+#colnames(joined_data)
+joined_data$btw[joined_data$btw == 0] <- NA
+joined_data$highway <- factor(joined_data$highway)
+#levels(joined_data$highway)
 ```
 
 
 * **Task 9:** Construct two different models to extrapolate bike traffic on Zurich’s roads. Base your models on the (potentially transformed) centrality measure you computed in Task 4. At least one of your two models should also use the (potentially transformed) tree counts per edge from Task 7. You may use additional predictors from my examples or whatever open data you can find elsewhere. I don’t expect you to go hunting, but if you have a good idea, I will be happy to see it and hopefully include it for future years.
 
-##Betweenness centrality model linear model
+::: {.panel-tabset .nav-pills}
+
+## linear regression model where betweenness predicts traffic
 ```{r}
-bclinear
-```
+# compute linear regression 
+linear_btw <- lm(per_day ~ btw, data = joined_data) # y ~ x
 
-##Tree based linear model
+# Retrieve the slope and intercept of the model
+linear_m <- linear_btw$coefficients["btw"]
+linear_b <- linear_btw$coefficients["(Intercept)"]
+
+
+# Plot the linear relationship between btw and traffic
+ggplot(joined_data) +
+  geom_point(aes(x = btw, y = per_day)) +
+  geom_abline(slope = linear_m, intercept = linear_b, color = "blue", linetype = "solid") +
+  xlab("Betweenness centrality") +
+  ylab("Traffic per day") +
+  theme_minimal()
+```
+Looking at the plot a rather big amount of scattering is present. Without the point with a value of 4000 for the traffic per day and the highest betweenness centality a declining curve could be seen. Unfortunately the traffic was often measured in areas with a low betweenness centrality in our network, therefore a linear model will not fit but maybe transforming the betweenness could help
+
+## linear regression model where log betweenness predicts traffic
 ```{r}
-bclineartree
+# Compute a linear regression model where log btw predicts traffic
+loglinear_btw <- lm(per_day ~ log(btw), data = joined_data)
+loglinear_m <- loglinear_btw$coefficients["log(btw)"]
+loglinear_b <- loglinear_btw$coefficients["(Intercept)"]
 
+# Plot the linear relationship between log btw and traffic
+ggplot(joined_data) +
+  geom_point(aes(x = btw, y = per_day)) +
+    geom_abline(slope = loglinear_m, intercept = loglinear_b, color = "blue", linetype = "solid") +
+  scale_x_continuous(trans = "log") +
+  xlab("Betweenness centrality") +
+  ylab("Traffic per day") +
+  theme_minimal()
+
+# Compute the RMSE of the linear and log-linear model
+rmse_linear <- sqrt(mean(residuals(linear_btw)^2))
+rmse_loglinear <- sqrt(mean(residuals(loglinear_btw)^2))
 ```
+Looking at the transformed plot shows, that transforming the betweenness centrality does not help.
+
+## comparison of the two models
+```{r message=TRUE}
+summary(linear_btw)
+rmse_linear
+summary(loglinear_btw)
+rmse_loglinear
+
+# both approaches are not useful to predict traffic
+```
+SaskiaBoth approaches show a high p value and a low adjusted R-squared value, meaning they aer not useful to predict traffic. 
+
+Looking at the summaries and the RMSE of both models shows that transforming the betweenness centrality slightly improves the model (slightly lower RMSE, sligthly bigger multiple R-squared). But the models still remain not significant and are not suited to represent the relationship between the traffic per day and the betweenness centrality.
+Maybe the tree-count is better suited to represent the relationship.
+
+## linear regression model where count of trees predicts traffic
+```{r}
+# compute linear regression 
+linear_tree <- lm(per_day ~ count_trees, data = joined_data) # y ~ x
+
+# Retrieve the slope and intercept of the model
+linear_m <- linear_tree$coefficients["count_trees"]
+linear_b <- linear_tree$coefficients["(Intercept)"]
+
+# Plot the linear relationship between btw and traffic
+ggplot(joined_data) +
+  geom_point(aes(x = count_trees, y = per_day)) +
+  geom_abline(slope = linear_m, intercept = linear_b, color = "blue", linetype = "solid") +
+  xlab("Tree count") +
+  ylab("Traffic per day") +
+  theme_minimal()
+```
+Again we have a problem with lots of low tree counts. Therefore lets transform the tree count. 
+
+## linear regression model where log amount of trees predicts traffic
+```{r}
+# Compute a linear regression model where log btw predicts traffic
+loglinear_tree <- lm(per_day ~ log(count_trees), data = joined_data)
+loglinear_m <- loglinear_tree$coefficients["log(count_trees)"]
+loglinear_b <- loglinear_tree$coefficients["(Intercept)"]
+
+# Plot the linear relationship between log btw and traffic
+ggplot(joined_data) +
+  geom_point(aes(x = count_trees, y = per_day)) +
+    geom_abline(slope = loglinear_m, intercept = loglinear_b, color = "blue", linetype = "solid") +
+  scale_x_continuous(trans = "log") +
+  xlab("Tree count") +
+  ylab("Traffic per day") +
+  theme_minimal()
+
+# Compute the RMSE of the linear and log-linear model
+rmse_linear_tree <- sqrt(mean(residuals(linear_tree)^2))
+rmse_loglinear_tree <- sqrt(mean(residuals(loglinear_tree)^2))
+```
+This plot already looks way better.
 
 
+## comparison of the two models
+```{r message=TRUE}
+summary(linear_tree)
+rmse_linear_tree
+summary(loglinear_tree)
+rmse_loglinear_tree
+# both approaches are not useful to predict traffic
+```
+Among the tree-count based models the log-transformed performs worse (higher RMSE, lower multiple R-squared, higher p-value). But in the end those differences do not matter a lot as both models are not significant and no significant effect of the trees is apparent. The same goes for the comparison between the models based on the betweenness centrality and and the models based on the tree counts. The models based on the tree counts are a little better, but all models are bad to a degree, where they should not be applied.
+
+:::
 
 * **Task 10:** Compare the two models using at least one quantitative model comparison method.
-```{r}
-BIC <- c(BIC(linear), BIC(loglinear), BIC(categorical), BIC(multivariate), BIC(extreme))
-AIC <- c(AIC(linear), AIC(loglinear), AIC(categorical), AIC(multivariate), AIC(extreme))
 
-model_performance <- data.frame(model = c("linear", "loglinear", "categorical", 
-                                          "multivariate", "extreme"),
-                                BIC = BIC, 
+```{r}
+# Compute the AIC and BIC
+BIC <- c(BIC(linear_btw), BIC(loglinear_btw), BIC(linear_tree), BIC(loglinear_tree))
+AIC <- c(AIC(linear_btw), AIC(loglinear_btw), AIC(linear_tree), AIC(loglinear_tree))
+
+model_performance <- data.frame(model = c("linear_btw", "loglinear_btw", "linear_tree",
+                                          "loglinear_tree"),
+                                BIC = BIC,
                                 AIC = AIC)
 
-```
-
-```{r}
 # Visualise the AIC and BIC for all models in a table
-flextable(model_performance) 
+flextable(model_performance)
 ```
 
+Looking at the data table the results show similar results to what was discussed previously in task 9. In the rest of the DC2 a model will be considered to be better than another one, if it has a AIC or BIC which is 2 AIC/BIC lower than another one, if the difference is smaller both models will be considered to be equally suited. Therefore the tree based models outperform the betweenness centrality based models. And the log-transformation of the explanatory variables did not lead to an improvement of the model.
 
 * **Task 11:** You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
