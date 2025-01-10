@@ -1,7 +1,7 @@
 ---
 title: "Data Challenge 2"
 author: "Sarah Wirth"
-date: "January 2025"
+date: "10 January 2025"
 format: 
   html:
     embed-resources: true
@@ -46,6 +46,9 @@ library(ggeffects)
 library(tmap)
 ```
 
+# Introduction 
+This file includes the assignments, code and interpretation of Data Challenge 2. The code was elaborated as collaboration between Sarah Wirth and Saskia Gianola. Each person has invested about 25 hours in this project. ChatGPT has been used to create and adapt code for this data challenge, but not for the interpretation of the results. 
+
 ```{r, results='hide'}
 
 biking_network <- readRDS("Session_6/biking_network.rds")
@@ -63,7 +66,7 @@ districts <-st_read("Session2/Zurich_city_districts_2024.gpkg")
 – Is the network connected? (Largely) planar? Weighted? Does it contain self-loops?
 
 
-```{r}
+```{r, results='hide'}
 biking_network
 
 edges<-biking_network |> 
@@ -117,8 +120,8 @@ legend("topleft", legend=c("100m", "75m","50m", "25m"),
 ```
 
 
-Looking at the kNN distance plot a grid distance in the range from 50m to 75m seems acceptable. To decide on which end I looked at the roads in the Niederdörfli, which has rather short streets and measured the distance between several intersections. After seeing, that the distances between the intersections are rather on the short side, we decided to create a grid with the resolution of 50m.
-As i do not know what awaits me for the rest of the DC2, I first decided to create a rectangular grid as well as a hexagonal grid and choose one later, but discarded the square grid early, as all other steps could be carried out with the hexagonal grid.
+Looking at the kNN distance plot a grid distance in the range from 50m to 75m seems acceptable. To decide on which end I looked at the roads in the Niederdörfli, which has rather short streets and measured the distance between several intersections. After seeing that the distances between the intersections are rather on the short side, we decided to create a grid with the resolution of 50m.
+As I do not know what awaits me for the rest of the DC2, I first decided to create a rectangular grid as well as a hexagonal grid and choose one later, but discarded the square grid early, as all other steps could be carried out with the hexagonal grid.
 
 ```{r}
 bbox<-biking_network |>
@@ -143,7 +146,7 @@ hex_grid <- sf::st_make_grid(bbox, what = "polygons",
 Have you ever cycled in Zürich? Compute and plot the optimal path from the starting point to the endpoint of a cycling route you are familiar with. You can use the biking_network.rds provided in Session 06, or adapt the CycleNetwork.rmd to create your own network. Compare the route inferred by the network with your preferred route.
 
 
-I have never cycled in Zürich as I do not live here and consider lots of spaces to be rather dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But i know the area from Wiedikon to the main station pretty well and can try to give a feedback to this.
+I have never cycled in Zürich as I do not live here and consider lots of spaces to be rather dangerous for pedestrians and cyclists based on the aggressive driving style of some people. But I know the area from Wiedikon to the main station well and can try to give feedback on this.
 
 ```{r results='hide'}
 wiedikon_bhf <- st_point(c(2681935.48, 1247264.46)) |> 
@@ -183,7 +186,7 @@ leaflet() |>
                weight = 4)
 ```
 
-The path chosen here does not correspond to the shortest path I would have taken for several reasons. Firstly this path does take a rather large detour via Zürich Selnau instead of using the path via Werd. This could be due to the placement of the starting point or maybe the chosen algorithm causes this behavior. For the fastest route I would have used Werd and as my personal safety route i would have chosen a route using some small streets with little traffic. 
+The path chosen here does not correspond to the shortest path I would have taken for several reasons. Firstly, this path does take a rather large detour via Zürich Selnau instead of using the road via Werd. This could be due to the placement of the starting point or maybe the chosen algorithm causes this behavior. For the fastest route I would have used Werd and as my personal safety route I would have chosen a route using some small streets with little traffic. 
 
 ## Task 4
 In a future week, we will estimate bike traffic based on network measures. This week, choose one network measure to inform your traffic estimates. You may use any network measure you wish, but you must justify your choice. Consider the following questions:
@@ -194,7 +197,7 @@ I chose the betweenness centrality as it should highlight places where bike traf
 
 • What potential problems might arise with this measure? As an example, the network contains many parallel paths in close proximity, which could influence measures that rely on shortest-path computations. 
 
-For this measure I assume, that cyclists do not avoid traffic hotspots, which i would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits. Also we might will need to transform the network as the betweenness centrality is calculated for the nodes. Other potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
+For this measure I assume, that cyclists do not avoid traffic hotspots, which I would absolutely do if I would have to cycle in Zürich. It also assumes that the speed of cyclists also is not affected by the slope of each path or speed limits. Also, we might need to transform the network as the betweenness centrality is calculated for the nodes. Other potential problems are that only the shortest path does only show the optimum but not other routes which are similarly suitable.
 
 • Plot your chosen measure for the network.
 
@@ -229,7 +232,7 @@ ggplot() +
           col = 'white') +
   geom_sf(data = biking_network_nodes |>  activate(nodes) |>  as_tibble() |>  st_as_sf(), 
           aes(col=btw), size = 0.5) +  
-  scale_color_viridis_c(option = "turbo", name = "betweenness (nodes)") +
+  scale_color_viridis_c(option = "turbo", name = "betweenness centrality (nodes)") +
   theme_void()
 ```
 
@@ -238,12 +241,12 @@ ggplot() +
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   geom_sf(data = biking_network_edges_sf, aes(color = btw), size = 1) +
-  scale_color_viridis_c(option = "turbo", name = "betweenness (edges)") +
+  scale_color_viridis_c(option = "turbo", name = "betweenness centrality (edges)") +
   theme_void()
 ```
 :::
 
-Although it is rather difficult to identify anything at the scale of the whole city some details are recognizable. Several nodes in the city centre (Kreis 1) and the nodes of the Bucheggstrasse have a elevated betweenness compared to most other nodes. For the edges a clearer picture is present. Firstly the Hardbrücke and the Rosengartenstrasse as well as the Bucheggstrasse have a strongly elevated betweenness compared to the rest of Zürich. Also some edges along the Limmat are highlighted as well as the Sihlhochstrasse. All those roads are well known for having rather high traffic. Therefore the betweenness highlights areas with high traffic pretty well.
+Although it is rather difficult to identify anything at the scale of the whole city some details are recognizable. Several nodes in the city center (Kreis 1) and the nodes of the Bucheggstrasse have an elevated betweenness centrality compared to most other nodes. For the edges a clearer picture is present. Firstly, the Hardbrücke and the Rosengartenstrasse as well as the Bucheggstrasse have a strongly elevated betweenness centrality compared to the rest of Zürich. Also, some edges along the Limmat like the Limmatquai are highlighted as well as the Sihlhochstrasse. All those roads are well known for having rather high traffic. Therefore, the betweenness centrality highlights areas with high traffic well.
 
 
 ## Task 5
@@ -266,7 +269,7 @@ Velotunnel_real_sf<- st_as_sf(Velotunnel_real, coords = c("lon", "lat"),
                          crs = 4326)
 ```
 
-The tunnel is already present in the dataset although it does not end exactly at one of the given coordinates.
+The tunnel is already present in the dataset although it does not end exactly at one of the sets of the given coordinates.
 
 
 ```{r results='hide'}
@@ -352,7 +355,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   geom_sf(data = biking_network_edges_sf, aes(color = btw), size = 10) +
-  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness centrality (edges)") +
   coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) +
   theme_void() +
   theme(
@@ -366,7 +369,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = districts, fill = "lightgrey", color = NA) +
   geom_sf(data = biking_network_no_stadttunnel_sf, aes(color = btw), size = 3) +
-  scale_color_viridis_c(option = "turbo", name = "Betweenness (Edges)") +
+  scale_color_viridis_c(option = "turbo", name = "Betweenness centrality (edges)") +
   coord_sf(xlim = c(2682100, 2683680), ylim = c(1247700, 1248800), expand = FALSE) +
   theme_void() +
   theme(
@@ -376,7 +379,7 @@ ggplot() +
 ```
 :::
 
-The project strongly increases the betweeness centrality of the nodes at the Drahtschmidlisteg across the Limmat, the Sihlquai as well as the Kasernenstrasse on the southern side of the trainstation. It is also apparent, that the Betweenness of all nodes eastern of the Mainstation is a little decreased by the addition of the Stadttunnel.Looking at the edges the same trend is visible. But it is also easily visible how the Betweenness on the southern side of the trainstation at the Poststrasse and the Gessnerallee is reduced through the addition of the Stadttunnel. Therefore the Stadttunnel should overall reduce bicycle presence in many rather dangerous areas surrounding the mainstation which could lead to a lower numbe of accidents involving cyclists in this region.
+The project strongly increases the betweenness centrality of the nodes at the Drahtschmidlisteg across the Limmat, the Sihlquai as well as the Kasernenstrasse on the southern side of the train station. It is also apparent, that the betweenness centrality of all nodes eastern of the train station is a little decreased by the addition of the Stadttunnel. Looking at the edges the same trend is visible. But it is also easily visible how the betweenness centrality on the southern side of the train station at the Poststrasse and the Gessnerallee is reduced through the addition of the Stadttunnel. Therefore the Stadttunnel should overall reduce bicycle presence in many rather dangerous areas surrounding the train station which could lead to a lower number of accidents involving cyclists in this region.
 
 
 # Third part: Spatial Autocorrelation
@@ -475,14 +478,14 @@ leaflet(hex_centro_acc_4326) |>
 ```
 
 
-Overall accidents seemingly occur in areas which are well known for having lots of traffic and are seemingly significant. At the first look the high Getis-Ord Gi values at underpass of the Langstrasse and the Limmatquai stand out. For the Limmatquai it is not surprising as lots of different traffic types occur at this road and the area is known for its traffic (cars and trams). The Langstrasse underpass on the other hand surprises me. Although this Underpass faces lots of traffic there are bike/pedestrian lanes available, which are separated from car-traffic. Maybe this area remains an accident hotspot due to cyclists taking the bike-lane on the road instead of the separate underpass. Another option is that the rather narrow separate underpasses could lead to accidents, if cyclists enter them with to much speed. This would explain why the city of Zürich plans on enlarging those underpasses by 2m. Other hotspots include the Hardstrasse and Bucheggplatz which are also known for being busy and having different types of traffic mixing. 
+Overall accidents seemingly occur in areas which are well known for having lots of traffic and are seemingly significant. At the first look the high Getis-Ord Gi values at underpass of the Langstrasse and the Limmatquai stand out. For the Limmatquai it is not surprising as lots of different traffic types occur at this road and the area is known for its traffic (cars and trams). The Langstrasse underpass on the other hand surprises me. Although this Underpass faces lots of traffic there are bike/pedestrian lanes available, which are separated from car-traffic. Maybe this area remains an accident hotspot due to cyclists taking the bike-lane on the road instead of the separate underpass. Another option is that the rather narrow separate underpasses could lead to accidents if cyclists enter them at too much speed. This would explain why the city of Zürich plans on enlarging those underpasses by 2m. Other hot spots include the Hardstrasse and Bucheggplatz which are also known for being busy and having different types of traffic mixing. 
 
 ## Task 7
 In a future task, we will predict bike traffic in the network, and for this, we want to check the number of trees along routes. Who knows, maybe cyclists prefer greener routes! For each network edge, count the number of trees nearby. Be careful to avoid double-counting the trees, and be sure to justify your definition of “nearby.”
 
-Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest Roadtype bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. Therefore I choose a distance of 5m, which contains enough space to include half of the road, the pedestrian path and enough space for the trees to grow. This disctance also allows 1. Klasse roads to be included. As the computers of Saskia and I do not have enough computational power to join for the area of the whole city, we chose to focus on the region of Kreis 1, 4 and 5. This focus will be kept for the rest of DC2.
+Nearby according to me has to respect the width of each road, and that each road in the grid is represented by a line which is exactly following the mid of the width of the road. Then we only need to respect the width of roads on which bicycles should be used (we exclude Autostrasse and Autobahn). As I cannot account for the width of every single road I will orient it on the largest road type bicycles can ride on (1. Klasse Strasse) which has a width of at least 6m. Therefore, I choose a distance of 8m, which contains enough space to include half of the road (3m), the pedestrian path (2m) and enough space for the trees to grow (3m). As the computers of Saskia and I do not have enough computational power to join for the area of the whole city, we chose to focus on the on Kreis 1, 4 and 5. This focus will be kept for the rest of DC2.
 
-To prevent double counting all trees outside of the 5m buffer around the edges were dropped in a first step, then for all remaining trees the closest present edge was found and the ID of the nearest edge was assigned to each tree. For this step a unique id for each edge was created. Then all trees per ID were counted and this count was joined back to the edges of the network.
+To prevent double counting all trees outside of the 8m buffer around the edges were dropped in the first step, then for all remaining trees the closest present edge was found, and the ID of the nearest edge was assigned to each tree. For this step a unique id for each edge was created. Then all trees per ID were counted and this count was joined back to the edges of the network.
 
 
 ```{r}
@@ -509,8 +512,11 @@ edges_sf_clipped$uniqueID <- paste(edges_sf_clipped$osm_id, edges_sf_clipped$fro
 
 
 ```{r echo=TRUE, collapse=TRUE}
-# create buffer around edges, 5 m buffer = 3 m street + 1 m sidewalk, + 1 m buffer
-edge_buffer <- st_buffer(edges_sf_clipped, dist = 5)
+# create buffer around edges, 8 m buffer = 3 m street + 2 m sidewalk, + 3 m buffer
+edge_buffer <- st_buffer(edges_sf_clipped, dist = 8)
+
+#clip trees to buffer
+trees_clipped <- st_intersection(edge_buffer, trees_clipped)
 
 # find nearest edge for each tree and get unique id
 nearest_street <- st_nearest_feature(trees_clipped, edge_buffer)
@@ -576,7 +582,7 @@ Construct two different models to extrapolate bike traffic on Zurich’s roads. 
 
 ::: {.panel-tabset .nav-pills}
 
-## linear regression model where betweenness predicts traffic
+## linear regression model where betweenness centrality predicts traffic
 ```{r}
 # compute linear regression 
 linear_btw <- lm(per_day ~ btw, data = joined_data) # y ~ x
@@ -594,9 +600,9 @@ ggplot(joined_data) +
   ylab("Traffic per day") +
   theme_minimal()
 ```
-Looking at the plot a rather big amount of scattering is present. Without the point with a value of 4000 for the traffic per day and the highest betweenness centality a declining curve could be seen. Unfortunately the traffic was often measured in areas with a low betweenness centrality in our network, therefore a linear model will not fit but maybe transforming the betweenness could help
+Looking at the plot a rather big amount of scattering is present. Without the point with a value of 4000 for the traffic per day and the highest betweenness centrality a declining curve could be seen. Unfortunately, the traffic was often measured in areas with a low betweenness centrality in our network, therefore a linear model will not fit but maybe transforming the betweenness centrality could help.
 
-## linear regression model where log betweenness predicts traffic
+## linear regression model where log betweenness centrality predicts traffic
 ```{r}
 # Compute a linear regression model where log btw predicts traffic
 loglinear_btw <- lm(per_day ~ log(btw), data = joined_data)
@@ -616,7 +622,7 @@ ggplot(joined_data) +
 rmse_linear <- sqrt(mean(residuals(linear_btw)^2))
 rmse_loglinear <- sqrt(mean(residuals(loglinear_btw)^2))
 ```
-Looking at the transformed plot shows, that transforming the betweenness centrality does not help.
+Looking at the transformed plot shows that transforming the betweenness centrality does not help.
 
 ## comparison of the two models
 ```{r message=TRUE}
@@ -628,7 +634,7 @@ rmse_loglinear
 # both approaches are not useful to predict traffic
 ```
 
-Looking at the summaries and the RMSE of both models shows that transforming the betweenness centrality slightly improves the model (slightly lower RMSE, sligthly bigger multiple R-squared). But the models still remain not significant and are not suited to represent the relationship between the traffic per day and the betweenness centrality.
+Looking at the summaries and the RMSE of both models shows that transforming the betweenness centrality slightly improves the model (slightly lower RMSE, slightly bigger multiple R-squared). But the models remain not significant and are not suited to represent the relationship between the traffic per day and the betweenness centrality.
 Maybe the tree-count is better suited to represent the relationship.
 
 ## linear regression model where count of trees predicts traffic
@@ -648,7 +654,7 @@ ggplot(joined_data) +
   ylab("Traffic per day") +
   theme_minimal()
 ```
-Again we have a problem with lots of low tree counts. Therefore lets transform the tree count. 
+In this case  only a small number of traffic- count locations have trees in the close-range buffer according the Baumkataster. Therefore, building a model is already not suited for only 11 points.
 
 ## linear regression model where log amount of trees predicts traffic
 ```{r}
@@ -670,8 +676,7 @@ ggplot(joined_data) +
 rmse_linear_tree <- sqrt(mean(residuals(linear_tree)^2))
 rmse_loglinear_tree <- sqrt(mean(residuals(loglinear_tree)^2))
 ```
-This plot already looks way better.
-
+This plot already looks way better, but still lacks data.
 
 ## comparison of the two models
 ```{r message=TRUE}
@@ -681,8 +686,7 @@ summary(loglinear_tree)
 rmse_loglinear_tree
 # both approaches are not useful to predict traffic
 ```
-Among the tree-count based models the log-transformed performs worse (higher RMSE, lower multiple R-squared, higher p-value). But in the end those differences do not matter a lot as both models are not significant and no significant effect of the trees is apparent. The same goes for the comparison between the models based on the betweenness centrality and and the models based on the tree counts. The models based on the tree counts are a little better, but all models are bad to a degree, where they should not be applied.
-
+Among the tree-count based models the log-transformed performs worse (higher RMSE, lower multiple R-squared). But in the end those differences do not matter a lot as both models are not significant, and no significant effect of the trees is apparent. The same goes for the comparison between the models based on the betweenness centrality and the models based on the tree counts. The models based on the tree counts are a little better, but all models are bad to a degree, where they should not be applied, especially the tree-based models solely based on their lack of data points.
 :::
 
 ## Task 10
@@ -702,14 +706,17 @@ model_performance <- data.frame(model = c("linear_btw", "loglinear_btw", "linear
 flextable(model_performance)
 ```
 
-Looking at the data table the results show similar results to what was discussed previously in task 9. In the rest of the DC2 a model will be considered to be better than another one, if it has a AIC or BIC which is 2 AIC/BIC lower than another one, if the difference is smaller both models will be considered to be equally suited. Therefore the tree based models outperform the betweenness centrality based models. And the log-transformation of the explanatory variables did not lead to an improvement of the model.
+Looking at the data table the results show similar results to what was discussed previously in task 9. In the rest of the DC2 a model will be considered to be better than another one, if it has an AIC or BIC which is 2 AIC/BIC lower than another one, if the difference is smaller both models will be considered to be equally suited. Therefore, the tree based models outperform the betweenness centrality based models. And the log-transformation of the explanatory variables did not lead to an improvement of the model.
 
 ## Task 11
 You counted the number of accidents along each network edge in Task 8. Apply Poisson regression to predict the number of bike accidents along each edge based on the (potentially transformed) centrality measure you computed in Task 4. Based on the model’s prediction, visualize the predicted probability that no accident occurs along each network edge.
 
-For the rest of the DC2 following changes will be applied: The NAs within the column with the amount of accidents with the number 0, as we assume that all accidents in Zürich have been properly reported. Also all cases with a NA for the betweenness were excluded as well. Those could have been created by improperly connected roads in the network. We first thought about removing all cases where trees had NAs as well, but we did not as the Baumkataster only contains trees owned by the city but not private trees. Therefore we cannot be sure that no trees are present in the cases with NAs, which led to us keeping the NAs for the trees. The cleanup was required to ensure the code to run properly without errors.
+For the rest of the DC2 following changes will be applied: The NAs within the column with the number of accidents with the number 0, as we assume that all accidents in Zürich have been properly reported. Also, all cases with a NA for the betweenness centrality were excluded as well. Those could have been created by improperly connected roads in the network. We first thought about removing all cases where trees had NAs as well, but we did not as the Baumkataster only contains trees owned by the city but not private trees. Therefore, we cannot be sure that no trees are present in the cases with NAs, which led to us keeping the NAs for the trees. The cleanup was required to ensure the code to run properly without errors.
 
-```{r message=TRUE}
+::: {.panel-tabset .nav-pills}
+
+## Summary
+```{r message=TRUE, echo=TRUE}
 joined_data_null <- joined_data |>
   mutate(count_acc = replace_na(count_acc, 0)) |>
   filter(!is.na(btw))
@@ -718,8 +725,9 @@ poisson_model <- glm(count_acc ~ btw, data = joined_data_null, family = "poisson
 summary(poisson_model)
 ```
 
-This summary contains a small but highly significant influence of the betweenness centrality. The residual deviance is a little smaller than the null deviance indicating that the model is slightly better. The AIC with a value of 16960 is a lot higher than the AIC of all previous models.
+This summary contains a small but highly significant influence of the betweenness centrality. The residual deviance is a little smaller than the null deviance indicating that the model is slightly better. The AIC with a value of 17203 is a lot higher than the AIC of all previous models.
 
+## Plot of probability of accidents
 ```{r}
 # Retrieve coefficients
 intercept_poisson <- poisson_model$coefficients[1]
@@ -727,7 +735,6 @@ slope_poisson <- poisson_model$coefficients[2]
 
 joined_data_null$lambda <- exp(intercept_poisson + slope_poisson * joined_data_null$btw)
 joined_data_null$p_no_accident <- exp(-joined_data_null$lambda)
-
 # plot data
 ggplot(joined_data_null) +
   geom_sf(aes(color = p_no_accident), size = 3) +
@@ -736,8 +743,9 @@ ggplot(joined_data_null) +
   theme_void()
 ```
 
- 
-The predicted probability represents the accident hotspots from task 6 pretty accurate and hotspots like the Limmatquai, the roads adjacent on the northern side of the Limmat, the Langstrasse underpass and the Hardbrücke as well as the roads leading off it in northern and southwestern direction. Although the Stadttunnel is not in use yet the high betweenness of it and its adjacent roads lead to a high predicted probability that an accident occurs. This also highlights that the betweenness alone is not enough to represent the risk of accidents occurring. Therefore maybe adding other predictors or account for spatial components could improve the model.
+The predicted probability represents the accident hotspots from task 6 pretty accurate and hotspots like the parts of the Limmatquai, the roads adjacent on the northern side of the Limmat and the Hardbrücke as well as the roads leading off it in northern and southwestern direction from the Hardbrücke. Although the Stadttunnel is not in use yet the high betweenness centrality of it and its adjacent roads lead to a high predicted probability that an accident occurs. This also highlights that the betweenness centrality alone is not enough to represent the risk of accidents occurring. Therefore, maybe adding other predictors or account for spatial components could improve the model.
+
+:::
 
 # Fifth part: Spatial Regression
 This week, you will perform spatial regression to predict the number of accidents on the bicycle network. However, spatial regression models (both spatial lag and error models) require a huge amount of computation time and memory space, and it is probably difficult to analyze the whole network. In the following tasks, you can focus on some regions or districts of the city of Zurich so that you can finish your task within a practical computation time.
@@ -756,7 +764,7 @@ plot(joined_data_null$count_acc~joined_data_null$count_trees)
 
 ```
  
-Although it might seem that the accident count drops with increasing betweenness and tree count the high count of low numbers of accidents could probably show another trend.
+Although it might seem that the accident count drops with increasing betweenness centrality and tree count the high count of low numbers of accidents could also show another trend.
 
 ## different models
 These are the different models we created for this task. 
@@ -767,7 +775,7 @@ lm_trees <-lm(formula = count_acc ~ count_trees, data = joined_data_null)
 lm_betweenness_trees <-lm(formula = count_acc ~ btw + count_trees, data = joined_data_null)
 ```
 
-## lm betweenness
+## lm betweenness centrality
 ```{r}
 # plot lm_betweenness
 ggplot(joined_data_null, aes(x = btw, y = count_acc)) +
@@ -780,7 +788,7 @@ ggplot(joined_data_null, aes(x = btw, y = count_acc)) +
 par(mfrow = c(2, 2))
 plot(lm_betweenness)
 ```
-Looking at the amount of accidents plotted against the betweenness centrality again a linear model seems to be a bad fit. The plot of the residuals against the fitted values shows a wedge open to the left, which indicates a violation of variance homogeniety. Also the deviation of the points from the dashed line in the Q-Q plot indicates a violation of the normal distribution of the residues.
+Looking at the number of accidents plotted against the betweenness centrality again a linear model seems to be a bad fit. The plot of the residuals against the fitted values shows a wedge open to the left, which indicates a violation of variance homogeneity. Also, the deviation of the points from the dashed line in the Q-Q plot indicates a violation of the normal distribution of the residues.
 
 ## lm trees
 ```{r}
@@ -797,11 +805,10 @@ par(mfrow = c(2, 2))
 plot(lm_trees)
 ```
 
-Ploting the accidents against the amount of trees again highlights how unsuited a linear model is for this case.
+Ploting the accidents against the number of trees again highlights how unsuited a linear model is for this case. The same problems as for the previous model is present.
 
-Saskia:The plots show a very similar picture as for the lm betweenness. The residuals are not normally distributed. Same as in the last model variance homogeniety is not given and the residuals are not normally distributed.
 
-## lm betweenness and trees
+## lm betweenness centrality and trees
 ```{r}
 # plot lm_betweenness_trees
 par(mfrow = c(2, 2))
@@ -823,9 +830,8 @@ model_performance <- data.frame(model = c("lm_betweenness", "lm_trees",
 # Visualise the AIC and BIC for all models in a table
 flextable(model_performance)
 ```
-Saskia:The comparision of the different models show very high AIC and BIC values. The poission model had an AIC of 16960 and is therefore better than the linear model where betweenness explains the amount of accidents, but worse than the model where the trees explain the amount of accidents or where the combination of betweenness and trees explain the amount of accidents. The best model according to this comparision is the one where the combination of betweenness and trees explain the amount of accidents.
 
-Looking at the comparison of the Models the AIC and BIC show similar results. The best model is the linear model dependant on the betweenness and the trees. Second best is the linear model dependant on trees followed by the poisson model and the model only relying on the centrality betweenness. Those results indicate that both predictors are capable of improving a model for the number of accidents. It is to assume that most of the predictive power stems from the tree count and the betweenness centrality only has a smaller influence.
+Looking at the comparison of the models the AIC and BIC show similar results. The best model is the linear model dependent on the betweenness centrality and the trees. Second best is the linear model dependent on trees followed by the poisson model and the model only relying on the betweenness centrality. Those results indicate that both predictors are capable of improving a model for the number of accidents. It is to assume that most of the predictive power stems from the tree count and the betweenness centrality only has a smaller influence.
 
 ```{r results='hide'}
 # check for spatial autocorrelation of best model
@@ -871,7 +877,7 @@ morans_I_residuals <- lm.morantest(lm_betweenness, listw = joined_data_null_weig
 morans_I_residuals
 ```
 
-The Morans I shows some but not a lot of positive and highly significant (p < 0.0001) autocorrelation in the strongest model (lm_betweenness_trees). Therefore the spatial autocorrelation should be accounted for in further models to improve them
+The Moran's I shows some but not a lot of positive and highly significant (p < 0.0001) autocorrelation in the strongest model (lm_betweenness_trees). Therefore, spatial autocorrelation should be accounted for in further models to improve them
 
 
 ## Task 13
@@ -884,7 +890,7 @@ Apply a spatial regression model (spatial lag, spatial error, or both) using the
 # 
 # summary(lag_joined)
 ```
-We tried to calculate the spatial lag but as our data still contained a lot of NAs for the tree count, it did not work. Therefore we only created a spatial error model.
+We tried to calculate the spatial lag but as our data still contained a lot of NAs for the tree count, it did not work. Therefore, we only created a spatial error model.
 
 ```{r message=TRUE, echo=TRUE}
 # spatial_error
@@ -894,7 +900,7 @@ ser_joined  <- spautolm(formula = count_acc ~ btw + count_trees,
 summary(ser_joined)
 ```
 
-This Model shows that the both the betweenness and the number of trees have a highly significant (p < 0.001) influence on the amount of accidents even if the influence is very small (estimates in the hundredths). The influence of the disturbances in neighboring locations are highly significant (p value of likelihood ratio test < 0.001).
+This model shows that both the betweenness centrality and the number of trees have a highly significant (p < 0.001) influence on the number of accidents even if the influence is very small (estimates in the hundredths) with a higher influence of the tree count. The influence of the disturbances in neighboring locations are significant (p value of likelihood ratio test = 0.01).
 
 ```{r}
 # compare models
@@ -909,14 +915,13 @@ model_performance <- data.frame(model = c( "lm_betweenness_trees", "spatial erro
 flextable(model_performance)
 ```
 
-The comparison of the spatial error model with the previously created models highlighted that the spatial error model is better than the models not accounting for the spatial autocorrelation with an AIC being 21 units lower and an BIC being 15 units lower than the lm_betweenness_trees model. Therefore the inclusion of the spatial autocorrelation improved the model as expected.
+For this model comparison the BIC and AIC show slightly dissimilar results. Whereas the BIC does indicate no improvement through the use of the spatial error model the AIC shows slight improvement. Therefore accounting for the spatial autocorrelation does only improve the model slightly.
 
 # Sixth part: Spatial Autocorrelation
 
 ## Task 14
 Define a (linear) mixed effects model to predict the number of accidents at an edge of the bicycle network from the (edge) centrality. You can freely transform variables and add other independent variables like the tree count. As groups for the random effects you can use the different road types (the highway property of the edges).
 Note: Observations with NA values are simply omitted by the lmer() function. You could instead treat them as a separate group using replace_na
-
 
 ```{r}
 joined_data_null <- joined_data_null |> 
@@ -930,17 +935,23 @@ joined_data_null <- joined_data_null |>
 lmem <- lmer(count_acc ~ btw_scaled + count_trees_scaled +  (1 | highway), data = joined_data_null)
 ```
 
+
+::: {.panel-tabset .nav-pills}
+## Summary linear mixed model
 ```{r message=TRUE}
 summary(lmem)
 ```
 
-Significant (p < 0.05) but very small effects are present for both the scaled betweenness centrality as well as the scaled tree count. There also is a small negative (-0.159) and therefore negligible correlation between the scaled betweenness centrality and the scaled count of trees. This negative correlation can be 
+A highly significant (p < 0.001) but small effect from the scaled count of trees is present in the model but no effect from the scaled betweenness centrality (p = 0.18). 
+There also is a small negative (-0.122) and therefore negligible correlation between the scaled betweenness centrality and the scaled count of trees.
 
+## Anova linear mixed model
 ```{r message=TRUE}
 anova(lmem)
 ```
 
-This model is highly significant compared to a model without fixed effects and accounts for random effects of different highway types.
+This model is highly significant compared to a model without fixed effects and accounts for random effects of different highway types. Again, no significant effect of the scaled betweenness centrality is present.
+:::
 
 ```{r echo=TRUE}
 model_fixed_btw <- lm(count_acc ~ btw_scaled, joined_data_null)
@@ -967,5 +978,4 @@ model_performance2 <- data.frame(model = c( "model_fixed", "model_random_interce
 flextable(model_performance2)
 ```
 
-The mixed model (dependent on count of trees and centrality betweenness with highway as random effect) and the random intercept model (dependent on betweenness centrality with highway as random effect) have the same AIC and BIC indicating that both models are similarly suited. The fixed model an the random model have also the same AIC and BIC. Overall the mixed model and the random intercept model performed better than the other two models.
-
+The mixed model (dependent on count of trees and betweenness centrality with highway as random effect) has the lowest BIC and AIC of all models and therefore is the best of the here listed models. Even if the random intercept model and the random model have similar BIC and AIC the random intercept model (dependent on betweenness centrality with highway as random effect) is slightly better than the random model. Worst of all models is the fixed model. 
