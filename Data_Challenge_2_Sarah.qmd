@@ -725,7 +725,7 @@ poisson_model <- glm(count_acc ~ btw, data = joined_data_null, family = "poisson
 summary(poisson_model)
 ```
 
-This summary contains a small but highly significant influence of the betweenness centrality. The residual deviance is a little smaller than the null deviance indicating that the model is slightly better. The AIC with a value of 17203 is a lot higher than the AIC of all previous models.
+This summary contains a small but highly significant influence of the betweenness centrality. The residual deviance is a little smaller than the null deviance indicating that the model is slightly better. 
 
 ## Plot of probability of accidents
 ```{r}
